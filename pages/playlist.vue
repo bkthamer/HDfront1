@@ -2,6 +2,7 @@
 import Mediacard from '@/layouts/components/Mediacard.vue';
 import { computed, onMounted, ref } from 'vue';
 
+// Interfaces
 interface User {
   email: string;
   role: string;
@@ -54,7 +55,7 @@ interface PlaylistAssignment {
   medias: Media[];
 }
 
-// Références réactives
+// Références et données
 const user = ref<User>({
   email: 'Unknown',
   role: 'User',
@@ -71,22 +72,28 @@ const showPlaylistModal = ref(false);
 const currentMedia = ref<Media | null>(null);
 const playlists = ref<Playlist[]>([]);
 const materiels = ref<Materiel[]>([]);
-const selectedHelices = ref<{ [playlistId: number]: string | null }>({});
 
-const matOptions = computed(() => materiels.value.map(m => m.materiel_hdref));
+// On stocke ici la valeur sélectionnée dans le dropdown pour chaque playlist (la hdref sélectionnée)
+const selectedPDVs = ref<{ [playlistId: number]: string | null }>({});
+
+// Computed property pour filtrer les playlists et leurs médias
 const filterGroupedPlaylists = computed(() => {
-  return groupedPlaylists.value.map(group => ({
-    ...group,
-    medias: group.medias.filter(media => {
-      const categoryMatch = selectedCategory.value === null || 
-                            media.categorie_id === selectedCategory.value;
-      const subCategoryMatch = selectedSubCategory.value === null || 
-                              media.souscategorie_id === selectedSubCategory.value;
-      return categoryMatch && subCategoryMatch;
-    })
-  })).filter(group => group.medias.length > 0);
+  return groupedPlaylists.value
+    .map(group => ({
+      ...group,
+      medias: group.medias.filter(media => {
+        const categoryMatch = selectedCategory.value === null || media.categorie_id === selectedCategory.value;
+        const subCategoryMatch = selectedSubCategory.value === null || media.souscategorie_id === selectedSubCategory.value;
+        return categoryMatch && subCategoryMatch;
+      })
+    }))
+    .filter(group => group.medias.length > 0);
 });
 
+// Computed property pour obtenir une liste de hdref (tableau de chaînes)
+const matOptions = computed(() => materiels.value.map(m => m.materiel_hdref));
+
+// Fonctions
 const deletePlaylist = async (playlistId: number) => {
   try {
     await $fetch('http://127.0.0.1:8000/playlist/delete', {
@@ -97,7 +104,6 @@ const deletePlaylist = async (playlistId: number) => {
       }
     });
     console.log(`Playlist ${playlistId} supprimée avec succès.`);
-    // Rafraîchir les playlists après suppression
     await fetchPlaylistsData();
   } catch (error) {
     console.error('Erreur lors de la suppression de la playlist:', error);
@@ -209,7 +215,45 @@ const assignPlaylistToHelice = async (assignment: PlaylistAssignment) => {
     }
     console.log(`Playlist assignée avec succès à ${assignment.hdref}`);
   } catch (error) {
-    console.error(`Erreur lors de la mise à jour:`, error);
+    console.error("Erreur lors de l'assignation à l'hélice:", error);
+  }
+};
+
+const assignPlaylistToPDV = async (assignment: { pdvId: number; playlist: Playlist; }) => {
+  if (!assignment.pdvId || !assignment.playlist) return;
+  try {
+    const payload = {
+      list_pdv_id: [assignment.pdvId],
+      del_pdv_id: [],
+      pip_playlist_id: assignment.playlist.id,
+      pip_add_by: user.value.email
+    };
+    await $fetch('http://127.0.0.1:8000/playlist/majpdv', {
+      method: 'POST',
+      body: payload,
+    });
+    console.log(`Association PDV ajoutée avec succès pour la playlist ${assignment.playlist.libelle}`);
+  } catch (error) {
+    console.error("Erreur lors de l'association du PDV à la playlist :", error);
+  }
+};
+
+// Fonction combinée : l'utilisateur sélectionne une hélice via son hdref
+const assignPlaylistCombined = async (playlist: Playlist, selectedHdref: string) => {
+  const pdv = materiels.value.find(m => m.materiel_hdref === selectedHdref);
+  if (!pdv) return;
+  try {
+    await assignPlaylistToHelice({ 
+      hdref: pdv.materiel_hdref, 
+      playlist, 
+      medias: groupedPlaylists.value.find(g => g.playlist.id === playlist.id)?.medias || [] 
+    });
+    await assignPlaylistToPDV({ pdvId: pdv.id, playlist });
+    if (currentMedia.value) {
+      await addMediaToPlaylist(playlist.id);
+    }
+  } catch (error) {
+    console.error("Erreur lors de l'assignation combinée :", error);
   }
 };
 
@@ -251,7 +295,6 @@ const addMediaToPlaylist = async (playlistId: number) => {
   showPlaylistModal.value = false;
 };
 
-// Nouvelle méthode pour supprimer un média d'une playlist en utilisant l'endpoint /playlist/majmedia
 const removeMediaFromPlaylist = async (playlistId: number, mediaId: number) => {
   try {
     const payload = {
@@ -296,17 +339,14 @@ onMounted(async () => {
         <p class="playlist-description">{{ group.playlist.description }}</p>
         <span class="badge">{{ group.medias.length }} médias</span>
 
+        <!-- Menu déroulant combiné pour assigner PDV et hélice -->
         <v-select
-          v-model="selectedHelices[group.playlist.id]"
+          v-model="selectedPDVs[group.playlist.id]"
           :items="matOptions"
-          placeholder="Sélectionner une hélice"
+          placeholder="Sélectionner un PDV"
           outlined
-          class="helix-select"
-          @update:modelValue="(hdref) => assignPlaylistToHelice({ 
-            hdref, 
-            playlist: group.playlist, 
-            medias: group.medias 
-          })"
+          class="combined-select"
+          @update:modelValue="(selectedHdref) => assignPlaylistCombined(group.playlist, selectedHdref)"
         />
 
         <VBtn
@@ -330,7 +370,6 @@ onMounted(async () => {
             :libe="media.libelle"
             :ready="media.ready"
           />
-          <!-- Bouton pour supprimer le média de la playlist -->
           <button 
             @click="removeMediaFromPlaylist(group.playlist.id, media.id)" 
             class="btn-playlist"
@@ -382,6 +421,8 @@ onMounted(async () => {
     </VCard>
   </VDialog>
 </template>
+
+
 
 
 <style scoped>
