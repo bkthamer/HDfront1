@@ -48,10 +48,8 @@ const filteredMedias = ref<Media[]>([]);
 const categories = ref<Categorie[]>([]);
 const sousCategories = ref<SousCategorie[]>([]);
 
-
 const selectedCategory = ref<number | null>(null);
 const selectedSubCategory = ref<number | null>(null);
-
 
 const showPlaylistModal = ref(false);
 const currentMedia = ref<Media | null>(null);
@@ -117,18 +115,15 @@ const fetchSousCategories = async () => {
 };
 
 const filterMedias = () => {
-
   let result = user.value.role === 'Admin'
     ? medias.value
     : medias.value.filter(media =>
         media.owner_id === null || media.owner_id === user.value.id_user
       );
-  
- 
+
   if (selectedCategory.value !== null) {
     result = result.filter(media => media.categorie_id === selectedCategory.value);
   }
-  
   
   if (selectedSubCategory.value !== null) {
     result = result.filter(media => media.souscategorie_id === selectedSubCategory.value);
@@ -139,7 +134,6 @@ const filterMedias = () => {
 
 const selectCategory = (id: number | null) => {
   selectedCategory.value = id;
- 
   selectedSubCategory.value = null;
   filterMedias();
 };
@@ -148,7 +142,6 @@ const selectSubCategory = (id: number | null) => {
   selectedSubCategory.value = id;
   filterMedias();
 };
-
 
 const openPlaylistModal = async (media: Media) => {
   currentMedia.value = media;
@@ -164,18 +157,20 @@ const openPlaylistModal = async (media: Media) => {
 const addMediaToPlaylist = async (playlistId: number) => {
   if (!currentMedia.value) return;
   try {
+    
     const payload = {
-      list_media_id: [currentMedia.value.id], 
+      list_media_id: [currentMedia.value.id],
+      del_media_id: [],
       mip_playlist_id: playlistId,
-      mip_add_by: user.value.email, 
+      mip_add_by: user.value.email,
     };
-    const response = await $fetch('http://127.0.0.1:8000/playlist/addmedia', {
+    const response = await $fetch('http://127.0.0.1:8000/playlist/majmedia', {
       method: 'POST',
       body: payload,
     });
-    console.log("Réponse de l'ajout :", response);
+    console.log("Réponse de la mise à jour :", response);
   } catch (error) {
-    console.error("Erreur lors de l'ajout du média à la playlist :", error);
+    console.error("Erreur lors de la mise à jour du média dans la playlist :", error);
   }
   
   showPlaylistModal.value = false;
@@ -194,7 +189,6 @@ onMounted(async () => {
     <UIcon name="i-simple-icons-concourse" class="text-green-500 w-12 h-12 mt-5" />
     <h2 class="text-3xl font-semibold ml-6 mt-4 mb-6 text-gray-800">Médiathèque</h2>
   </div>
-  
 
   <div class="categories">
     <button 
@@ -211,7 +205,6 @@ onMounted(async () => {
     </button>
   </div>
   
-  
   <div v-if="selectedCategory !== null" class="subcategories">
     <button 
       :class="{ active: selectedSubCategory === null }" 
@@ -227,22 +220,18 @@ onMounted(async () => {
     </button>
   </div>
 
-  
   <div class="media-galerie">
     <div v-for="media in filteredMedias" :key="media.id" class="media-item">
-      
       <Mediacard 
         :descrip="media.description" 
         :libe="media.libelle"  
       />
-      
       <button @click="openPlaylistModal(media)" class="btn-playlist">
         playlist
       </button>
     </div>
   </div>
 
-  
   <VDialog v-model="showPlaylistModal" max-width="500px">
     <VCard>
       <VCardTitle class="dialog-title">
@@ -277,6 +266,7 @@ onMounted(async () => {
     </VCard>
   </VDialog>
 </template>
+
 
 <style scoped>
 .header {

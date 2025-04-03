@@ -2,7 +2,6 @@
 import Mediacard from '@/layouts/components/Mediacard.vue';
 import { computed, onMounted, ref } from 'vue';
 
-
 interface User {
   email: string;
   role: string;
@@ -39,22 +38,14 @@ interface Playlist {
   status: boolean;
 }
 
-interface MIPResponse {
-  mip_add_by: string | null;
-  mip_add_date: string;
-  media: Media;
-  playlist: Playlist;
-}
-
 interface GroupedPlaylist {
   playlist: Playlist;
   medias: Media[];
 }
 
 interface Materiel {
-  id:number;
+  id: number;
   materiel_hdref: string;
-
 }
 
 interface PlaylistAssignment {
@@ -82,14 +73,13 @@ const playlists = ref<Playlist[]>([]);
 const materiels = ref<Materiel[]>([]);
 const selectedHelices = ref<{ [playlistId: number]: string | null }>({});
 
-
 const matOptions = computed(() => materiels.value.map(m => m.materiel_hdref));
 const filterGroupedPlaylists = computed(() => {
   return groupedPlaylists.value.map(group => ({
     ...group,
     medias: group.medias.filter(media => {
       const categoryMatch = selectedCategory.value === null || 
-                          media.categorie_id === selectedCategory.value;
+                            media.categorie_id === selectedCategory.value;
       const subCategoryMatch = selectedSubCategory.value === null || 
                               media.souscategorie_id === selectedSubCategory.value;
       return categoryMatch && subCategoryMatch;
@@ -97,13 +87,11 @@ const filterGroupedPlaylists = computed(() => {
   })).filter(group => group.medias.length > 0);
 });
 
-
-
 const deletePlaylist = async (playlistId: number) => {
   try {
     await $fetch('http://127.0.0.1:8000/playlist/delete', {
       method: 'DELETE',
-      body: JSON.stringify({ pl_id: playlistId }), // Envoi explicite de la clé attendue
+      body: JSON.stringify({ pl_id: playlistId }),
       headers: {
         "Content-Type": "application/json"
       }
@@ -144,15 +132,9 @@ const fetchUserId = async () => {
   }
 };
 
-
-
-
 const fetchPlaylistsData = async () => {
   try {
-
     const playlistsData = await $fetch<Playlist[]>('http://127.0.0.1:8000/playlist/list');
-    
-   
     const groups: GroupedPlaylist[] = await Promise.all(
       playlistsData.map(async (playlist) => {
         const medias = await $fetch<Media[]>(`http://127.0.0.1:8000/playlist/listmedia/${playlist.id}`);
@@ -162,7 +144,6 @@ const fetchPlaylistsData = async () => {
         };
       })
     );
-    
     groupedPlaylists.value = groups;
   } catch (error) {
     console.error('Erreur lors de la récupération des playlists et de leurs médias:', error);
@@ -198,9 +179,7 @@ const fetchMaterielsBySite = async () => {
 
 const assignPlaylistToHelice = async (assignment: PlaylistAssignment) => {
   if (!assignment.hdref || !assignment.playlist) return;
-
   try {
-    
     const existingFiles = await $fetch<string[]>('http://127.0.0.1:8000/helice/remote', {
       method: 'POST',
       body: {
@@ -208,8 +187,6 @@ const assignPlaylistToHelice = async (assignment: PlaylistAssignment) => {
         ordre: 'listsd'
       }
     });
-
-    
     for (const file of existingFiles.filter(f => f.endsWith('.mp4'))) {
       await $fetch('http://127.0.0.1:8000/helice/remote', {
         method: 'POST',
@@ -220,8 +197,6 @@ const assignPlaylistToHelice = async (assignment: PlaylistAssignment) => {
         }
       });
     }
-
-    
     for (const media of assignment.medias) {
       await $fetch('http://127.0.0.1:8000/helice/remote', {
         method: 'POST',
@@ -232,7 +207,6 @@ const assignPlaylistToHelice = async (assignment: PlaylistAssignment) => {
         }
       });
     }
-
     console.log(`Playlist assignée avec succès à ${assignment.hdref}`);
   } catch (error) {
     console.error(`Erreur lors de la mise à jour:`, error);
@@ -277,6 +251,24 @@ const addMediaToPlaylist = async (playlistId: number) => {
   showPlaylistModal.value = false;
 };
 
+// Nouvelle méthode pour supprimer un média d'une playlist en utilisant l'endpoint /playlist/majmedia
+const removeMediaFromPlaylist = async (playlistId: number, mediaId: number) => {
+  try {
+    const payload = {
+      list_media_id: [],
+      del_media_id: [mediaId],
+      mip_playlist_id: playlistId,
+      mip_add_by: user.value.email
+    };
+    await $fetch('http://127.0.0.1:8000/playlist/majmedia', {
+      method: 'POST',
+      body: payload,
+    });
+    await fetchPlaylistsData();
+  } catch (error) {
+    console.error("Erreur lors de la suppression du média de la playlist :", error);
+  }
+};
 
 onMounted(async () => {
   await fetchUser();
@@ -318,15 +310,13 @@ onMounted(async () => {
         />
 
         <VBtn
-  @click="deletePlaylist(group.playlist.id)" 
-  class="btn-delete"
-  title="Supprimer la playlist"
->
-  <UIcon name="i-heroicons-trash" class="mr-1" />
-  Supprimer
+          @click="deletePlaylist(group.playlist.id)" 
+          class="btn-delete"
+          title="Supprimer la playlist"
+        >
+          <UIcon name="i-heroicons-trash" class="mr-1" />
+          Supprimer
         </VBtn>
-  
-
       </div>
 
       <div class="media-galerie">
@@ -340,12 +330,13 @@ onMounted(async () => {
             :libe="media.libelle"
             :ready="media.ready"
           />
+          <!-- Bouton pour supprimer le média de la playlist -->
           <button 
-            @click="openPlaylistModal(media)" 
+            @click="removeMediaFromPlaylist(group.playlist.id, media.id)" 
             class="btn-playlist"
           >
-            <UIcon name="i-heroicons-pencil-square" class="mr-1" />
-            Gérer
+            <UIcon name="i-heroicons-trash" class="mr-1" />
+            Supprimer
           </button>
         </div>
       </div>
