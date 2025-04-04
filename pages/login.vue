@@ -25,7 +25,7 @@ const authThemeMask = computed(() => {
 // Fonction pour effectuer la connexion
 const login = async (email: string, password: string) => {
   try {
-    const response = await fetch('http://127.0.0.1:8000/login', { // Remplacez par l'URL de votre API
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/login`, { // Remplacez par l'URL de votre API
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
