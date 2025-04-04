@@ -55,6 +55,7 @@ interface PlaylistAssignment {
   medias: Media[];
 }
 
+
 interface PDV {
   pdv_id: number;
   pdv_hdref: string;
@@ -84,6 +85,7 @@ const playlists = ref<Playlist[]>([]);
 const materiels = ref<Materiel[]>([]);
 
 
+
 const selectedPDVs = ref<{ [playlistId: number]: string | null }>({});
 
 
@@ -107,7 +109,11 @@ const filterGroupedPlaylists = computed(() => {
 });
 
 
+
 const matOptions = computed(() => materiels.value.map(m => m.materiel_hdref));
+
+
+
 
 
 const deletePlaylist = async (playlistId: number) => {
@@ -253,6 +259,7 @@ const assignPlaylistToPDV = async (assignment: { pdvId: number; playlist: Playli
     console.error("Erreur lors de l'association du PDV à la playlist :", error);
   }
 };
+
 
 const assignPlaylistCombined = async (playlist: Playlist, selectedHdref: string) => {
   const pdv = materiels.value.find(m => m.materiel_hdref === selectedHdref);
