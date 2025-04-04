@@ -2,7 +2,7 @@
 import Mediacard from '@/layouts/components/Mediacard.vue';
 import { computed, onMounted, ref } from 'vue';
 
-// Interfaces
+
 interface User {
   email: string;
   role: string;
@@ -55,7 +55,17 @@ interface PlaylistAssignment {
   medias: Media[];
 }
 
-// Références et données
+
+interface PDV {
+  pdv_id: number;
+  pdv_hdref: string;
+  pdv_emplacement: string;
+  site_id: number;
+  site_hdref: string;
+  client_id: number;
+  client_societe: string;
+}
+
 const user = ref<User>({
   email: 'Unknown',
   role: 'User',
@@ -73,10 +83,18 @@ const currentMedia = ref<Media | null>(null);
 const playlists = ref<Playlist[]>([]);
 const materiels = ref<Materiel[]>([]);
 
-// On stocke ici la valeur sélectionnée dans le dropdown pour chaque playlist (la hdref sélectionnée)
+
+
+
 const selectedPDVs = ref<{ [playlistId: number]: string | null }>({});
 
-// Computed property pour filtrer les playlists et leurs médias
+
+const showPDVModal = ref(false);
+const selectedPDVList = ref<PDV[]>([]);
+const selectedPlaylistTitle = ref<string>('');
+const selectedPlaylist = ref<Playlist | null>(null); 
+
+
 const filterGroupedPlaylists = computed(() => {
   return groupedPlaylists.value
     .map(group => ({
@@ -90,10 +108,14 @@ const filterGroupedPlaylists = computed(() => {
     .filter(group => group.medias.length > 0);
 });
 
-// Computed property pour obtenir une liste de hdref (tableau de chaînes)
+
+
 const matOptions = computed(() => materiels.value.map(m => m.materiel_hdref));
 
-// Fonctions
+
+=======
+
+
 const deletePlaylist = async (playlistId: number) => {
   try {
     await $fetch('http://127.0.0.1:8000/playlist/delete', {
@@ -238,7 +260,7 @@ const assignPlaylistToPDV = async (assignment: { pdvId: number; playlist: Playli
   }
 };
 
-// Fonction combinée : l'utilisateur sélectionne une hélice via son hdref
+
 const assignPlaylistCombined = async (playlist: Playlist, selectedHdref: string) => {
   const pdv = materiels.value.find(m => m.materiel_hdref === selectedHdref);
   if (!pdv) return;
@@ -313,6 +335,49 @@ const removeMediaFromPlaylist = async (playlistId: number, mediaId: number) => {
   }
 };
 
+
+const openPDVPopup = async (playlist: Playlist) => {
+  try {
+    const pdvData = await $fetch<PDV[]>(`http://127.0.0.1:8000/playlist/listpdv/${playlist.id}`);
+    selectedPDVList.value = pdvData;
+    selectedPlaylistTitle.value = playlist.libelle;
+    selectedPlaylist.value = playlist; 
+    showPDVModal.value = true;
+  } catch (error) {
+    console.error("Erreur lors de la récupération des points de diffusion :", error);
+  }
+};
+
+const removePDVFromPlaylist = async (pdvId: number) => {
+  if (!selectedPlaylist.value) return;
+  try {
+    
+    const payload = {
+      list_pdv_id: [],
+      del_pdv_id: [pdvId],
+      pip_playlist_id: selectedPlaylist.value.id,
+      pip_add_by: user.value.email
+    };
+    
+    await $fetch('http://127.0.0.1:8000/playlist/majpdv', {
+      method: 'POST',
+      body: payload
+    });
+
+   
+    const pdvToRestore = selectedPDVList.value.find(pdv => pdv.pdv_id === pdvId);
+    
+ 
+
+   
+    await openPDVPopup(selectedPlaylist.value);
+    
+  } catch (error) {
+    console.error("Erreur lors de la suppression du PDV :", error);
+  }
+};
+
+
 onMounted(async () => {
   await fetchUser();
   await fetchCategories();
@@ -348,16 +413,32 @@ onMounted(async () => {
           class="combined-select"
           @update:modelValue="(selectedHdref) => assignPlaylistCombined(group.playlist, selectedHdref)"
         />
-
+<div>
+  <div class="flex justify-between items-center mt-4">
         <VBtn
           @click="deletePlaylist(group.playlist.id)" 
           class="btn-delete"
           title="Supprimer la playlist"
         >
           <UIcon name="i-heroicons-trash" class="mr-1" />
-          Supprimer
+          Supprimer Playlist
         </VBtn>
+        </div>
+
+        <div class="flex justify-between items-center mt-4">
+
+          <VBtn 
+          @click="openPDVPopup(group.playlist)"
+          class="btn-pdv"
+          title="Voir points diffusion"
+        >
+          <UIcon name="i-heroicons-information-circle" class="mr-1" />
+          Voir points diffusion
+        </VBtn>
+        </div>
       </div>
+
+  </div>
 
       <div class="media-galerie">
         <div 
@@ -387,6 +468,7 @@ onMounted(async () => {
     </div>
   </div>
 
+  <!-- Pop-up pour affecter un média à une playlist existante -->
   <VDialog v-model="showPlaylistModal" max-width="500px">
     <VCard>
       <VCardTitle class="dialog-title">
@@ -420,7 +502,57 @@ onMounted(async () => {
       </VCardActions>
     </VCard>
   </VDialog>
+
+ 
+  <VDialog v-model="showPDVModal" max-width="600px" transition="dialog-bottom-transition">
+    <VCard class="pdv-card">
+      <VCardTitle class="dialog-title">
+        Points de diffusion de la playlist: <span class="playlist-title">{{ selectedPlaylistTitle }}</span>
+      </VCardTitle>
+      <VCardText class="pdv-content">
+        <div v-if="selectedPDVList.length > 0" class="table-container">
+          <table class="table-pdv">
+            <thead>
+              <tr>
+
+                <th>HDRef</th>
+                
+                <th>Site</th>
+                <th>Société</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="pdv in selectedPDVList" :key="pdv.pdv_id">
+
+                <td>{{ pdv.pdv_hdref }}</td>
+               
+                <td>{{ pdv.site_hdref }}</td>
+                <td>{{ pdv.client_societe }}</td>
+                <td>
+                  <VBtn color="red" small @click="removePDVFromPlaylist(pdv.pdv_id)" title="Supprimer PDV">
+                    <UIcon name="i-heroicons-trash" class="mr-1" />
+                    Supprimer
+                  </VBtn>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div v-else class="no-pdv">
+          <UIcon name="i-heroicons-exclamation" class="mr-2" />
+          Aucun point de diffusion associé.
+        </div>
+      </VCardText>
+      <VCardActions class="pdv-actions">
+        <VBtn color="purple" @click="showPDVModal = false" block>
+          Fermer
+        </VBtn>
+      </VCardActions>
+    </VCard>
+  </VDialog>
 </template>
+
 
 
 
@@ -428,6 +560,77 @@ onMounted(async () => {
 <style scoped>
 
 
+
+.dialog-bottom-transition-enter-active,
+.dialog-bottom-transition-leave-active {
+  transition: all 0.3s ease;
+}
+.dialog-bottom-transition-enter-from,
+.dialog-bottom-transition-leave-to {
+  transform: translateY(30px);
+  opacity: 0;
+}
+
+
+.pdv-card {
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #ffff; 
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+
+.dialog-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  background-color: #fff; 
+  color: #ce13ef;
+  padding: 16px;
+}
+
+
+.playlist-title {
+  font-style: italic;
+}
+
+
+.pdv-content {
+  padding: 20px;
+  background-color: #ffffff;
+}
+
+
+.table-container {
+  max-height: 300px;
+  overflow-y: auto;
+}
+.table-pdv {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table-pdv th,
+.table-pdv td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+.table-pdv th {
+  background-color: #e303be; 
+}
+
+
+.no-pdv {
+  text-align: center;
+  color: #757575;
+  font-size: 1.1rem;
+  padding: 20px 0;
+}
+
+
+.pdv-actions {
+  padding: 16px;
+  background-color: #f3e5f5;
+}
 
 
 .filters-container {
