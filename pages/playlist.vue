@@ -66,6 +66,7 @@ interface PDV {
   client_societe: string;
 }
 
+
 const user = ref<User>({
   email: 'Unknown',
   role: 'User',
@@ -82,7 +83,6 @@ const showPlaylistModal = ref(false);
 const currentMedia = ref<Media | null>(null);
 const playlists = ref<Playlist[]>([]);
 const materiels = ref<Materiel[]>([]);
-
 
 
 
@@ -113,7 +113,7 @@ const filterGroupedPlaylists = computed(() => {
 const matOptions = computed(() => materiels.value.map(m => m.materiel_hdref));
 
 
-=======
+
 
 
 const deletePlaylist = async (playlistId: number) => {
@@ -404,7 +404,6 @@ onMounted(async () => {
         <p class="playlist-description">{{ group.playlist.description }}</p>
         <span class="badge">{{ group.medias.length }} médias</span>
 
-        <!-- Menu déroulant combiné pour assigner PDV et hélice -->
         <v-select
           v-model="selectedPDVs[group.playlist.id]"
           :items="matOptions"
