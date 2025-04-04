@@ -2,6 +2,7 @@
 import Mediacard from '@/layouts/components/Mediacard.vue';
 import { computed, onMounted, ref } from 'vue';
 
+
 interface User {
   email: string;
   role: string;
@@ -54,7 +55,17 @@ interface PlaylistAssignment {
   medias: Media[];
 }
 
-// Références réactives
+interface PDV {
+  pdv_id: number;
+  pdv_hdref: string;
+  pdv_emplacement: string;
+  site_id: number;
+  site_hdref: string;
+  client_id: number;
+  client_societe: string;
+}
+
+
 const user = ref<User>({
   email: 'Unknown',
   role: 'User',
@@ -71,21 +82,34 @@ const showPlaylistModal = ref(false);
 const currentMedia = ref<Media | null>(null);
 const playlists = ref<Playlist[]>([]);
 const materiels = ref<Materiel[]>([]);
-const selectedHelices = ref<{ [playlistId: number]: string | null }>({});
+
+
+
+const selectedPDVs = ref<{ [playlistId: number]: string | null }>({});
+
+
+const showPDVModal = ref(false);
+const selectedPDVList = ref<PDV[]>([]);
+const selectedPlaylistTitle = ref<string>('');
+const selectedPlaylist = ref<Playlist | null>(null); 
+
+
+const filterGroupedPlaylists = computed(() => {
+  return groupedPlaylists.value
+    .map(group => ({
+      ...group,
+      medias: group.medias.filter(media => {
+        const categoryMatch = selectedCategory.value === null || media.categorie_id === selectedCategory.value;
+        const subCategoryMatch = selectedSubCategory.value === null || media.souscategorie_id === selectedSubCategory.value;
+        return categoryMatch && subCategoryMatch;
+      })
+    }))
+    .filter(group => group.medias.length > 0);
+});
+
 
 const matOptions = computed(() => materiels.value.map(m => m.materiel_hdref));
-const filterGroupedPlaylists = computed(() => {
-  return groupedPlaylists.value.map(group => ({
-    ...group,
-    medias: group.medias.filter(media => {
-      const categoryMatch = selectedCategory.value === null || 
-                            media.categorie_id === selectedCategory.value;
-      const subCategoryMatch = selectedSubCategory.value === null || 
-                              media.souscategorie_id === selectedSubCategory.value;
-      return categoryMatch && subCategoryMatch;
-    })
-  })).filter(group => group.medias.length > 0);
-});
+
 
 const deletePlaylist = async (playlistId: number) => {
   try {
@@ -97,7 +121,6 @@ const deletePlaylist = async (playlistId: number) => {
       }
     });
     console.log(`Playlist ${playlistId} supprimée avec succès.`);
-    // Rafraîchir les playlists après suppression
     await fetchPlaylistsData();
   } catch (error) {
     console.error('Erreur lors de la suppression de la playlist:', error);
@@ -209,7 +232,44 @@ const assignPlaylistToHelice = async (assignment: PlaylistAssignment) => {
     }
     console.log(`Playlist assignée avec succès à ${assignment.hdref}`);
   } catch (error) {
-    console.error(`Erreur lors de la mise à jour:`, error);
+    console.error("Erreur lors de l'assignation à l'hélice:", error);
+  }
+};
+
+const assignPlaylistToPDV = async (assignment: { pdvId: number; playlist: Playlist; }) => {
+  if (!assignment.pdvId || !assignment.playlist) return;
+  try {
+    const payload = {
+      list_pdv_id: [assignment.pdvId],
+      del_pdv_id: [],
+      pip_playlist_id: assignment.playlist.id,
+      pip_add_by: user.value.email
+    };
+    await $fetch('http://127.0.0.1:8000/playlist/majpdv', {
+      method: 'POST',
+      body: payload,
+    });
+    console.log(`Association PDV ajoutée avec succès pour la playlist ${assignment.playlist.libelle}`);
+  } catch (error) {
+    console.error("Erreur lors de l'association du PDV à la playlist :", error);
+  }
+};
+
+const assignPlaylistCombined = async (playlist: Playlist, selectedHdref: string) => {
+  const pdv = materiels.value.find(m => m.materiel_hdref === selectedHdref);
+  if (!pdv) return;
+  try {
+    await assignPlaylistToHelice({ 
+      hdref: pdv.materiel_hdref, 
+      playlist, 
+      medias: groupedPlaylists.value.find(g => g.playlist.id === playlist.id)?.medias || [] 
+    });
+    await assignPlaylistToPDV({ pdvId: pdv.id, playlist });
+    if (currentMedia.value) {
+      await addMediaToPlaylist(playlist.id);
+    }
+  } catch (error) {
+    console.error("Erreur lors de l'assignation combinée :", error);
   }
 };
 
@@ -251,7 +311,6 @@ const addMediaToPlaylist = async (playlistId: number) => {
   showPlaylistModal.value = false;
 };
 
-// Nouvelle méthode pour supprimer un média d'une playlist en utilisant l'endpoint /playlist/majmedia
 const removeMediaFromPlaylist = async (playlistId: number, mediaId: number) => {
   try {
     const payload = {
@@ -269,6 +328,49 @@ const removeMediaFromPlaylist = async (playlistId: number, mediaId: number) => {
     console.error("Erreur lors de la suppression du média de la playlist :", error);
   }
 };
+
+
+const openPDVPopup = async (playlist: Playlist) => {
+  try {
+    const pdvData = await $fetch<PDV[]>(`http://127.0.0.1:8000/playlist/listpdv/${playlist.id}`);
+    selectedPDVList.value = pdvData;
+    selectedPlaylistTitle.value = playlist.libelle;
+    selectedPlaylist.value = playlist; 
+    showPDVModal.value = true;
+  } catch (error) {
+    console.error("Erreur lors de la récupération des points de diffusion :", error);
+  }
+};
+
+const removePDVFromPlaylist = async (pdvId: number) => {
+  if (!selectedPlaylist.value) return;
+  try {
+    
+    const payload = {
+      list_pdv_id: [],
+      del_pdv_id: [pdvId],
+      pip_playlist_id: selectedPlaylist.value.id,
+      pip_add_by: user.value.email
+    };
+    
+    await $fetch('http://127.0.0.1:8000/playlist/majpdv', {
+      method: 'POST',
+      body: payload
+    });
+
+   
+    const pdvToRestore = selectedPDVList.value.find(pdv => pdv.pdv_id === pdvId);
+    
+ 
+
+   
+    await openPDVPopup(selectedPlaylist.value);
+    
+  } catch (error) {
+    console.error("Erreur lors de la suppression du PDV :", error);
+  }
+};
+
 
 onMounted(async () => {
   await fetchUser();
@@ -297,27 +399,39 @@ onMounted(async () => {
         <span class="badge">{{ group.medias.length }} médias</span>
 
         <v-select
-          v-model="selectedHelices[group.playlist.id]"
+          v-model="selectedPDVs[group.playlist.id]"
           :items="matOptions"
-          placeholder="Sélectionner une hélice"
+          placeholder="Sélectionner un PDV"
           outlined
-          class="helix-select"
-          @update:modelValue="(hdref) => assignPlaylistToHelice({ 
-            hdref, 
-            playlist: group.playlist, 
-            medias: group.medias 
-          })"
+          class="combined-select"
+          @update:modelValue="(selectedHdref) => assignPlaylistCombined(group.playlist, selectedHdref)"
         />
-
+<div>
+  <div class="flex justify-between items-center mt-4">
         <VBtn
           @click="deletePlaylist(group.playlist.id)" 
           class="btn-delete"
           title="Supprimer la playlist"
         >
           <UIcon name="i-heroicons-trash" class="mr-1" />
-          Supprimer
+          Supprimer Playlist
         </VBtn>
+        </div>
+
+        <div class="flex justify-between items-center mt-4">
+
+          <VBtn 
+          @click="openPDVPopup(group.playlist)"
+          class="btn-pdv"
+          title="Voir points diffusion"
+        >
+          <UIcon name="i-heroicons-information-circle" class="mr-1" />
+          Voir points diffusion
+        </VBtn>
+        </div>
       </div>
+
+  </div>
 
       <div class="media-galerie">
         <div 
@@ -330,7 +444,6 @@ onMounted(async () => {
             :libe="media.libelle"
             :ready="media.ready"
           />
-          <!-- Bouton pour supprimer le média de la playlist -->
           <button 
             @click="removeMediaFromPlaylist(group.playlist.id, media.id)" 
             class="btn-playlist"
@@ -348,6 +461,7 @@ onMounted(async () => {
     </div>
   </div>
 
+  <!-- Pop-up pour affecter un média à une playlist existante -->
   <VDialog v-model="showPlaylistModal" max-width="500px">
     <VCard>
       <VCardTitle class="dialog-title">
@@ -381,12 +495,135 @@ onMounted(async () => {
       </VCardActions>
     </VCard>
   </VDialog>
+
+ 
+  <VDialog v-model="showPDVModal" max-width="600px" transition="dialog-bottom-transition">
+    <VCard class="pdv-card">
+      <VCardTitle class="dialog-title">
+        Points de diffusion de la playlist: <span class="playlist-title">{{ selectedPlaylistTitle }}</span>
+      </VCardTitle>
+      <VCardText class="pdv-content">
+        <div v-if="selectedPDVList.length > 0" class="table-container">
+          <table class="table-pdv">
+            <thead>
+              <tr>
+
+                <th>HDRef</th>
+                
+                <th>Site</th>
+                <th>Société</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="pdv in selectedPDVList" :key="pdv.pdv_id">
+
+                <td>{{ pdv.pdv_hdref }}</td>
+               
+                <td>{{ pdv.site_hdref }}</td>
+                <td>{{ pdv.client_societe }}</td>
+                <td>
+                  <VBtn color="red" small @click="removePDVFromPlaylist(pdv.pdv_id)" title="Supprimer PDV">
+                    <UIcon name="i-heroicons-trash" class="mr-1" />
+                    Supprimer
+                  </VBtn>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div v-else class="no-pdv">
+          <UIcon name="i-heroicons-exclamation" class="mr-2" />
+          Aucun point de diffusion associé.
+        </div>
+      </VCardText>
+      <VCardActions class="pdv-actions">
+        <VBtn color="purple" @click="showPDVModal = false" block>
+          Fermer
+        </VBtn>
+      </VCardActions>
+    </VCard>
+  </VDialog>
 </template>
+
+
+
 
 
 <style scoped>
 
 
+
+.dialog-bottom-transition-enter-active,
+.dialog-bottom-transition-leave-active {
+  transition: all 0.3s ease;
+}
+.dialog-bottom-transition-enter-from,
+.dialog-bottom-transition-leave-to {
+  transform: translateY(30px);
+  opacity: 0;
+}
+
+
+.pdv-card {
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #ffff; 
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+
+.dialog-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  background-color: #fff; 
+  color: #ce13ef;
+  padding: 16px;
+}
+
+
+.playlist-title {
+  font-style: italic;
+}
+
+
+.pdv-content {
+  padding: 20px;
+  background-color: #ffffff;
+}
+
+
+.table-container {
+  max-height: 300px;
+  overflow-y: auto;
+}
+.table-pdv {
+  width: 100%;
+  border-collapse: collapse;
+}
+.table-pdv th,
+.table-pdv td {
+  padding: 12px;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+.table-pdv th {
+  background-color: #e303be; 
+}
+
+
+.no-pdv {
+  text-align: center;
+  color: #757575;
+  font-size: 1.1rem;
+  padding: 20px 0;
+}
+
+
+.pdv-actions {
+  padding: 16px;
+  background-color: #f3e5f5;
+}
 
 
 .filters-container {
