@@ -368,32 +368,33 @@ const cmddelfile = async () => {
 
 const restorePreviousMedias = async (hdref: string) => {
   try {
-    // Récupère la liste des fichiers de la SD
-    const disabledFiles = await $fetch<string[]>('http://127.0.0.1:8000/helice/remote', {
+    // On déclenche directement la restauration de l'ensemble des médias dans "dis"
+    const response = await $fetch('http://127.0.0.1:8000/helice/remote', {
       method: 'POST',
       body: {
         hdref: hdref,
-        ordre: 'listsd'
+        ordre: 'enablemedia',  // Commande pour activer/restaurer les médias
+        fichier: "dis"         // Indique au backend d'intervenir sur le dossier "dis"
       }
-    })
+    });
 
-    // Filtre les fichiers .gz au lieu de .disabled
-    for (const file of disabledFiles.filter(f => f.endsWith('.gz'))) {
-      await $fetch('http://127.0.0.1:8000/helice/remote', {
-        method: 'POST',
-        body: {
-          hdref: hdref,
-          ordre: 'enablemedia',
-          fichier: file
-        }
-      })
-    }
-    // Actualise la liste SD après restauration
-    await cmdListsd()
+    console.log("Réponse de restauration :", response);
+    retour.value = `Les médias ont été restaurés avec succès.`;
+
+    // Actualisation de la liste si nécessaire
+    await cmdListsd(); 
   } catch (error) {
-    console.error('Erreur de restauration:', error)
+    console.error('Erreur de restauration:', error);
+    retour.value = 'Erreur lors de la restauration des médias.';
   }
-}
+};
+
+
+
+
+
+
+
 
 const matOptions = computed(() => materiels.value.map(m => m.materiel_hdref))
 

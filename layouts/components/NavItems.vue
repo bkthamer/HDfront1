@@ -66,6 +66,13 @@ onMounted(() => {
       }"
 />
 
+<VerticalNavLink
+      :item="{
+        title: 'gestion playlist',
+        to: '/gestionplaylist',
+      }"
+/>
+
 
 <VerticalNavLink
       :item="{
