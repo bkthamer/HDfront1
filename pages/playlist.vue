@@ -2,7 +2,7 @@
 import Mediacard from '@/layouts/components/Mediacard.vue';
 import { computed, onMounted, ref } from 'vue';
 
-
+// Interfaces existantes...
 interface User {
   email: string;
   role: string;
@@ -55,7 +55,6 @@ interface PlaylistAssignment {
   medias: Media[];
 }
 
-
 interface PDV {
   pdv_id: number;
   pdv_hdref: string;
@@ -66,7 +65,18 @@ interface PDV {
   client_societe: string;
 }
 
+// Nouvel objet pour la grille
+interface GrilleForm {
+  playlist_id: number | null;
+  helice_hdref: string;
+  start_date: string; // format ISO attendu
+  end_date: string;   // format ISO attendu
+  media_ids: number[];
+}
 
+// ----------------------
+// États Réactifs
+// ----------------------
 const user = ref<User>({
   email: 'Unknown',
   role: 'User',
@@ -83,18 +93,25 @@ const showPlaylistModal = ref(false);
 const currentMedia = ref<Media | null>(null);
 const playlists = ref<Playlist[]>([]);
 const materiels = ref<Materiel[]>([]);
-
-
-
 const selectedPDVs = ref<{ [playlistId: number]: string | null }>({});
-
-
 const showPDVModal = ref(false);
 const selectedPDVList = ref<PDV[]>([]);
 const selectedPlaylistTitle = ref<string>('');
-const selectedPlaylist = ref<Playlist | null>(null); 
+const selectedPlaylist = ref<Playlist | null>(null); // sera utilisé pour le calendrier et assignations
 
+// Nouveaux états pour le calendrier de grille
+const showCalendarModal = ref(false);
+const grilleForm = ref<GrilleForm>({
+  playlist_id: null,
+  helice_hdref: '',
+  start_date: '',
+  end_date: '',
+  media_ids: []
+});
 
+// ----------------------
+// Computed
+// ----------------------
 const filterGroupedPlaylists = computed(() => {
   return groupedPlaylists.value
     .map(group => ({
@@ -108,14 +125,11 @@ const filterGroupedPlaylists = computed(() => {
     .filter(group => group.medias.length > 0);
 });
 
-
-
 const matOptions = computed(() => materiels.value.map(m => m.materiel_hdref));
 
-
-
-
-
+// ----------------------
+// Fonctions existantes
+// ----------------------
 const deletePlaylist = async (playlistId: number) => {
   try {
     await $fetch('http://127.0.0.1:8000/playlist/delete', {
@@ -260,25 +274,129 @@ const assignPlaylistToPDV = async (assignment: { pdvId: number; playlist: Playli
   }
 };
 
-
-const assignPlaylistCombined = async (playlist: Playlist, selectedHdref: string) => {
-  const pdv = materiels.value.find(m => m.materiel_hdref === selectedHdref);
-  if (!pdv) return;
+// Fonction de restauration appelée lorsque end_date est atteinte
+const restorePreviousMedias = async (hdref: string) => {
   try {
-    await assignPlaylistToHelice({ 
-      hdref: pdv.materiel_hdref, 
-      playlist, 
-      medias: groupedPlaylists.value.find(g => g.playlist.id === playlist.id)?.medias || [] 
+    const response = await $fetch('http://127.0.0.1:8000/helice/remote', {
+      method: 'POST',
+      body: {
+        hdref: hdref,
+        ordre: 'enablemedia',
+        fichier: "dis"
+      }
     });
-    await assignPlaylistToPDV({ pdvId: pdv.id, playlist });
-    if (currentMedia.value) {
-      await addMediaToPlaylist(playlist.id);
-    }
+    console.log("Réponse de restauration :", response);
+    // Vous pouvez rafraîchir la liste ou afficher un message à l'utilisateur ici.
   } catch (error) {
-    console.error("Erreur lors de l'assignation combinée :", error);
+    console.error('Erreur de restauration:', error);
   }
 };
 
+// ----------------------
+// Gestion du calendrier de grille et assignation
+// ----------------------
+
+// Modification de la fonction openCalendarModal pour enregistrer le playlist sélectionné
+const openCalendarModal = (playlist: Playlist, selectedHdref: string) => {
+  // Enregistre le playlist dans l'état global pour une utilisation ultérieure
+  selectedPlaylist.value = playlist;
+
+  // Récupérer le materiel correspondant au PDV sélectionné
+  const pdv = materiels.value.find(m => m.materiel_hdref === selectedHdref);
+  if (!pdv) return;
+
+  // Préparer le formulaire de grille
+  grilleForm.value.playlist_id = playlist.id;
+  grilleForm.value.helice_hdref = pdv.materiel_hdref;
+  // Préremplir start_date et end_date avec des valeurs par défaut (exemple : début immédiat et fin dans 2 heures)
+  const now = new Date();
+  grilleForm.value.start_date = now.toISOString().substring(0, 16); // format "YYYY-MM-DDTHH:mm"
+  const end = new Date(now.getTime() + 2 * 60 * 60 * 1000); // + 2 heures
+  grilleForm.value.end_date = end.toISOString().substring(0, 16);
+  // Déduire les media_ids de la playlist
+  const group = groupedPlaylists.value.find(g => g.playlist.id === playlist.id);
+  grilleForm.value.media_ids = group ? group.medias.map(m => m.id) : [];
+
+  // Afficher le calendrier
+  showCalendarModal.value = true;
+};
+
+// Modification de submitGrille pour :
+// - Ajouter la grille dans la base de données
+// - Assigner la playlist à l'hélice (avec les médias) et au PDV (si sélectionné)
+// - Déclencher le timeout pour restauration à end_date
+const submitGrille = async () => {
+  try {
+    // Envoi de la grille au backend
+    const response = await $fetch('http://127.0.0.1:8000/grille/add', {
+      method: 'POST',
+      body: JSON.stringify(grilleForm.value),
+      headers: { "Content-Type": "application/json" }
+    });
+    console.log("Grille ajoutée :", response);
+    showCalendarModal.value = false;
+
+    // Calcul du délai en ms pour la date de début
+    const startDateTime = new Date(grilleForm.value.start_date);
+    const now = new Date();
+    const assignDelay = startDateTime.getTime() - now.getTime();
+
+    // Fonction pour exécuter l'affectation de la playlist à l'hélice et au PDV
+    const executeAssignment = async () => {
+      if (selectedPlaylist.value) {
+        // Récupérer le groupe de médias associé à la playlist
+        const group = groupedPlaylists.value.find(g => g.playlist.id === grilleForm.value.playlist_id);
+        if (group) {
+          await assignPlaylistToHelice({
+            hdref: grilleForm.value.helice_hdref,
+            playlist: selectedPlaylist.value,
+            medias: group.medias
+          });
+        }
+        // Si un PDV a été sélectionné pour cette playlist, lancer l'assignation PDV
+        const pdvIdStr = selectedPDVs.value[selectedPlaylist.value.id];
+        if (pdvIdStr) {
+          const pdvId = parseInt(pdvIdStr);
+          await assignPlaylistToPDV({ pdvId, playlist: selectedPlaylist.value });
+        }
+      }
+    };
+
+    if (assignDelay > 0) {
+      console.log("L'affectation de la playlist débutera à", grilleForm.value.start_date);
+      setTimeout(() => {
+        executeAssignment();
+      }, assignDelay);
+    } else {
+      // Si la date de début est dans le passé ou immédiate, on affecte tout de suite
+      await executeAssignment();
+    }
+
+    // Calculer le délai (ms) entre maintenant et la date de fin pour lancer la restauration
+    const endDateTime = new Date(grilleForm.value.end_date);
+    const restoreDelay = endDateTime.getTime() - Date.now();
+    if (restoreDelay > 0) {
+      console.log("Début du timeout pour restauration à", grilleForm.value.end_date);
+      setTimeout(() => {
+        restorePreviousMedias(grilleForm.value.helice_hdref);
+      }, restoreDelay);
+    }
+  } catch (error) {
+    console.error("Erreur lors de l'ajout de la grille :", error);
+  }
+};
+
+
+// Modification de assignPlaylistCombined pour ouvrir le calendrier au lieu d'une assignation immédiate
+const assignPlaylistCombined = async (playlist: Playlist, selectedHdref: string) => {
+  // Ouvre le popup calendrier afin de saisir les informations de grille
+  openCalendarModal(playlist, selectedHdref);
+  // L'assignation vers hélice et PDV se déclenche après validation dans submitGrille
+};
+
+// ----------------------
+// Autres fonctions de gestion de playlist et PDV
+// ----------------------
 const selectCategory = (id: number | null) => {
   selectedCategory.value = id;
   selectedSubCategory.value = null;
@@ -335,13 +453,12 @@ const removeMediaFromPlaylist = async (playlistId: number, mediaId: number) => {
   }
 };
 
-
 const openPDVPopup = async (playlist: Playlist) => {
   try {
     const pdvData = await $fetch<PDV[]>(`http://127.0.0.1:8000/playlist/listpdv/${playlist.id}`);
     selectedPDVList.value = pdvData;
     selectedPlaylistTitle.value = playlist.libelle;
-    selectedPlaylist.value = playlist; 
+    selectedPlaylist.value = playlist;
     showPDVModal.value = true;
   } catch (error) {
     console.error("Erreur lors de la récupération des points de diffusion :", error);
@@ -351,32 +468,21 @@ const openPDVPopup = async (playlist: Playlist) => {
 const removePDVFromPlaylist = async (pdvId: number) => {
   if (!selectedPlaylist.value) return;
   try {
-    
     const payload = {
       list_pdv_id: [],
       del_pdv_id: [pdvId],
       pip_playlist_id: selectedPlaylist.value.id,
       pip_add_by: user.value.email
     };
-    
     await $fetch('http://127.0.0.1:8000/playlist/majpdv', {
       method: 'POST',
       body: payload
     });
-
-   
-    const pdvToRestore = selectedPDVList.value.find(pdv => pdv.pdv_id === pdvId);
-    
- 
-
-   
     await openPDVPopup(selectedPlaylist.value);
-    
   } catch (error) {
     console.error("Erreur lors de la suppression du PDV :", error);
   }
 };
-
 
 onMounted(async () => {
   await fetchUser();
@@ -388,11 +494,9 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div class="header">
-    <UIcon name="i-simple-icons-concourse" class="text-green-500 w-12 h-12 mt-5" />
-    <h2 class="text-3xl font-semibold ml-6 mt-4 mb-6 text-gray-800">Playlists</h2>
-  </div>
+  <!-- ... votre template existant ... -->
 
+  <!-- Bloc des playlists -->
   <div class="playlists-container">
     <div 
       v-for="group in filterGroupedPlaylists" 
@@ -403,7 +507,8 @@ onMounted(async () => {
         <h3 class="playlist-title">{{ group.playlist.libelle }}</h3>
         <p class="playlist-description">{{ group.playlist.description }}</p>
         <span class="badge">{{ group.medias.length }} médias</span>
-
+        
+        <!-- V-select mis à jour pour appeler la nouvelle logique -->
         <v-select
           v-model="selectedPDVs[group.playlist.id]"
           :items="matOptions"
@@ -412,32 +517,29 @@ onMounted(async () => {
           class="combined-select"
           @update:modelValue="(selectedHdref) => assignPlaylistCombined(group.playlist, selectedHdref)"
         />
-<div>
-  <div class="flex justify-between items-center mt-4">
-        <VBtn
-          @click="deletePlaylist(group.playlist.id)" 
-          class="btn-delete"
-          title="Supprimer la playlist"
-        >
-          <UIcon name="i-heroicons-trash" class="mr-1" />
-          Supprimer Playlist
-        </VBtn>
+
+        <div class="flex justify-between items-center mt-4">
+          <VBtn
+            @click="deletePlaylist(group.playlist.id)" 
+            class="btn-delete"
+            title="Supprimer la playlist"
+          >
+            <UIcon name="i-heroicons-trash" class="mr-1" />
+            Supprimer Playlist
+          </VBtn>
         </div>
 
         <div class="flex justify-between items-center mt-4">
-
           <VBtn 
-          @click="openPDVPopup(group.playlist)"
-          class="btn-pdv"
-          title="Voir points diffusion"
-        >
-          <UIcon name="i-heroicons-information-circle" class="mr-1" />
-          Voir points diffusion
-        </VBtn>
+            @click="openPDVPopup(group.playlist)"
+            class="btn-pdv"
+            title="Voir points diffusion"
+          >
+            <UIcon name="i-heroicons-information-circle" class="mr-1" />
+            Voir points diffusion
+          </VBtn>
         </div>
       </div>
-
-  </div>
 
       <div class="media-galerie">
         <div 
@@ -467,7 +569,7 @@ onMounted(async () => {
     </div>
   </div>
 
-  <!-- Pop-up pour affecter un média à une playlist existante -->
+  <!-- Popup pour ajouter un média à une playlist existante -->
   <VDialog v-model="showPlaylistModal" max-width="500px">
     <VCard>
       <VCardTitle class="dialog-title">
@@ -502,7 +604,7 @@ onMounted(async () => {
     </VCard>
   </VDialog>
 
- 
+  <!-- Popup pour afficher les PDVs associés -->
   <VDialog v-model="showPDVModal" max-width="600px" transition="dialog-bottom-transition">
     <VCard class="pdv-card">
       <VCardTitle class="dialog-title">
@@ -513,9 +615,7 @@ onMounted(async () => {
           <table class="table-pdv">
             <thead>
               <tr>
-
                 <th>HDRef</th>
-                
                 <th>Site</th>
                 <th>Société</th>
                 <th>Actions</th>
@@ -523,9 +623,7 @@ onMounted(async () => {
             </thead>
             <tbody>
               <tr v-for="pdv in selectedPDVList" :key="pdv.pdv_id">
-
                 <td>{{ pdv.pdv_hdref }}</td>
-               
                 <td>{{ pdv.site_hdref }}</td>
                 <td>{{ pdv.client_societe }}</td>
                 <td>
@@ -550,9 +648,41 @@ onMounted(async () => {
       </VCardActions>
     </VCard>
   </VDialog>
+
+  <!-- Nouveau popup pour le calendrier de grille -->
+  <VDialog v-model="showCalendarModal" max-width="600px" transition="dialog-bottom-transition">
+    <VCard class="calendar-card">
+      <VCardTitle class="dialog-title">
+        Planifier la grille pour la playlist (ID: {{ grilleForm.playlist_id }})
+      </VCardTitle>
+      <VCardText class="calendar-content">
+        <div class="form-group">
+          <label for="start_date">Date & heure de début</label>
+          <!-- Intégration d'un composant date-time picker adapté -->
+          <input id="start_date" type="datetime-local" v-model="grilleForm.start_date" />
+        </div>
+        <div class="form-group">
+          <label for="end_date">Date & heure de fin</label>
+          <input id="end_date" type="datetime-local" v-model="grilleForm.end_date" />
+        </div>
+        <!-- Affichage en lecture seule de l'HDRef et des médias concernés -->
+        <div class="form-group">
+          <label>Helice HDRef</label>
+          <input type="text" v-model="grilleForm.helice_hdref" readonly />
+        </div>
+        <div class="form-group">
+          <label>Médias (IDs)</label>
+          <div>{{ grilleForm.media_ids.join(', ') }}</div>
+        </div>
+      </VCardText>
+      <VCardActions class="calendar-actions">
+        <!-- Bouton de confirmation de la grille -->
+        <VBtn color="primary" @click="submitGrille" block>Valider la grille</VBtn>
+        
+      </VCardActions>
+    </VCard>
+  </VDialog>
 </template>
-
-
 
 
 
@@ -776,4 +906,7 @@ button.active {
 
 
 </style>
+
+
+
 
