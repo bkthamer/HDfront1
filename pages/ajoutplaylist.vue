@@ -6,6 +6,7 @@ const playlistForm = ref({
   pl_libelle: '',
   pl_description: '',
   pl_proprietaire: null as number | null, 
+  pl_mode:        'OFF' as string
 })
 
 const list_users = ref<any[]>([])
@@ -31,25 +32,22 @@ const validateForm = () => {
 }
 
 const retourapi = ref({ etat: '', message: '' })
+
 const onSubmit = async () => {
   const errors = validateForm()
-  if (errors.length > 0) {
-   
-    return
-  }
-  
- 
-  const proprietaireValue = playlistForm.value.pl_proprietaire === null ? 0 : playlistForm.value.pl_proprietaire
-  
+  if (errors.length > 0) return
+
+  const proprietaireValue = playlistForm.value.pl_proprietaire ?? 0
+
   try {
-    
     const resp = await $fetch('http://127.0.0.1:8000/playlist/add', {
-      method: "POST",
+      method: 'POST',
       body: {
-        pl_libelle: playlistForm.value.pl_libelle,
-        pl_description: playlistForm.value.pl_description,
-        pl_proprietaire: proprietaireValue,
-        pl_status: false
+        pl_libelle:       playlistForm.value.pl_libelle,
+        pl_description:   playlistForm.value.pl_description,
+        pl_proprietaire:  proprietaireValue,
+        pl_status:        false,
+        pl_mode:          playlistForm.value.pl_mode
       }
     })
     retourapi.value = resp as { etat: string; message: string }

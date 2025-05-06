@@ -176,7 +176,7 @@ import { useLazyAsyncData } from '#imports'
 import Mediacard from '@/layouts/components/Mediacard.vue'
 import { computed, onMounted, ref, watch } from 'vue'
 
-// Interfaces
+
 interface Materiel {
   materiel_hdref: string
 }
@@ -240,7 +240,7 @@ const fetchMedias = async () => {
 }
 
 const filterMedias = () => {
-  if (user.value.role === 'Admin') {
+  if (user.value.role === 'admin') {
     filteredMedias.value = medias.value
   } else {
     filteredMedias.value = medias.value.filter(media =>
@@ -279,7 +279,13 @@ const fetchUserId = async () => {
 
 const fetchMaterielsBySite = async () => {
   try {
-    const response = await $fetch(`http://127.0.0.1:8000/pdv/list/bysite/${user.value.site_id}`)
+
+    const url =
+      user.value.role === 'admin'
+        ? 'http://127.0.0.1:8000/pdv/list'
+        : `http://127.0.0.1:8000/pdv/list/bysite/${user.value.site_id}`
+
+    const response = await $fetch(url)
     materiels.value = response as Materiel[]
   } catch (error) {
     console.error('Erreur récupération matériels:', error)
@@ -368,20 +374,20 @@ const cmddelfile = async () => {
 
 const restorePreviousMedias = async (hdref: string) => {
   try {
-    // On déclenche directement la restauration de l'ensemble des médias dans "dis"
+    
     const response = await $fetch('http://127.0.0.1:8000/helice/remote', {
       method: 'POST',
       body: {
         hdref: hdref,
-        ordre: 'enablemedia',  // Commande pour activer/restaurer les médias
-        fichier: "dis"         // Indique au backend d'intervenir sur le dossier "dis"
+        ordre: 'enablemedia', 
+        fichier: "dis"         
       }
     });
 
     console.log("Réponse de restauration :", response);
     retour.value = `Les médias ont été restaurés avec succès.`;
 
-    // Actualisation de la liste si nécessaire
+   
     await cmdListsd(); 
   } catch (error) {
     console.error('Erreur de restauration:', error);

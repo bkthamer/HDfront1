@@ -21,7 +21,7 @@ const headers = [
 const userData = ref<any[]>([])
 const sites = ref<any[]>([])
 const showDialog = ref(false)
-const selectedSites = ref<any[]>([])  // Contiendra les objets site complets
+const selectedSites = ref<any[]>([])  
 const email = ref<string>('')
 
 const fetchUsers = async () => {
@@ -74,7 +74,7 @@ const resolveUserStatusVariant = (stat: string) => {
 
 const getUsernamePrefix = (email: string) => email.split('@')[0]
 
-// Ouverture du dialogue : si l'utilisateur a déjà un site (filtré par client_id), on affiche cet objet, sinon, on affiche tous les sites.
+
 const openPopup = (clientId: number, userEmail: string) => {
   email.value = userEmail
 

@@ -115,7 +115,7 @@ const fetchSousCategories = async () => {
 };
 
 const filterMedias = () => {
-  let result = user.value.role === 'Admin'
+  let result = user.value.role === 'admin'
     ? medias.value
     : medias.value.filter(media =>
         media.owner_id === null || media.owner_id === user.value.id_user
@@ -143,11 +143,14 @@ const selectSubCategory = (id: number | null) => {
   filterMedias();
 };
 
+
 const openPlaylistModal = async (media: Media) => {
   currentMedia.value = media;
   try {
     const data = await $fetch<Playlist[]>('http://127.0.0.1:8000/playlist/list');
-    playlists.value = data;
+    playlists.value = user.value.role === 'admin'
+      ? data
+      : data.filter(playlist => playlist.proprietaire === user.value.id_user);
   } catch (error) {
     console.error("Erreur lors de la récupération des playlists:", error);
   }
@@ -157,7 +160,6 @@ const openPlaylistModal = async (media: Media) => {
 const addMediaToPlaylist = async (playlistId: number) => {
   if (!currentMedia.value) return;
   try {
-    
     const payload = {
       list_media_id: [currentMedia.value.id],
       del_media_id: [],

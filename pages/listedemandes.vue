@@ -114,7 +114,7 @@ const headers = [
 const dialog = ref(false)
 const selectedImage = ref('')
 
-// Couleur du statut basée sur la date
+
 const getStatusColor = (item: Demande) => {
   const daysOld = (Date.now() - new Date(item.date).getTime()) / (1000 * 3600 * 24)
   if (daysOld > 7) return 'error'
@@ -122,7 +122,7 @@ const getStatusColor = (item: Demande) => {
   return 'success'
 }
 
-// Texte du statut
+
 const getStatusText = (item: Demande) => {
   const daysOld = (Date.now() - new Date(item.date).getTime()) / (1000 * 3600 * 24)
   if (daysOld > 7) return 'En retard'
@@ -150,7 +150,7 @@ const openImage = (img: string) => {
 }
 
 const openDetails = (item: Demande) => {
-  // Implémentez la logique d'ouverture des détails ici
+ 
   console.log('Détails de la demande:', item)
 }
 

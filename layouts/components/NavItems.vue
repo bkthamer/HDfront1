@@ -52,51 +52,152 @@ onMounted(() => {
         to: '/dashboard',
       }"
     />
-    <VerticalNavLink
-      :item="{
-        title: 'media',
-        to: '/media',
-      }"
-    />
+
     
-    <VerticalNavLink
+
+
+
+
+
+
+  </VerticalNavGroup>
+
+  <!-- 👉 Front Pages -->
+  <!-- ... -->
+
+  <VerticalNavSectionTitle
+    :item="{
+      heading: 'Playlist Management',
+    }"
+  />
+
+  <VerticalNavLink
+   v-if="user.role === 'admin'"
       :item="{
-        title: 'Playlist',
+        title: 'Add playlist',
+        icon:'ri-play-list-add-line',
         to: '/ajoutplaylist',
       }"
 />
 
 <VerticalNavLink
       :item="{
-        title: 'gestion playlist',
+        title: 'Gestion playlist',
+        icon:'ri-list-settings-line',
         to: '/gestionplaylist',
       }"
 />
 
-
 <VerticalNavLink
       :item="{
-        title: 'get playlist',
+        title: 'Get playlist',
+        icon:'ri-play-list-2-fill',
         to: '/playlist',
       }"
 />
 
+<VerticalNavLink
+ v-if="user.role === 'admin'"
+      :item="{
+        title: 'Suivi tache playlist',
+        icon:'ri-survey-line',
+        to: '/suiviplaylist',
+      }"
+/>
+
+
+
+
+  <VerticalNavSectionTitle
+    :item="{
+      heading: 'Remote',
+    }"
+  />
+  <VerticalNavLink
+  
+  :item="{
+    title: 'Telé',
+    icon: 'ri-remote-control-line',
+    to: '/telecommande',
+  }"
+/>
+
+<VerticalNavLink
+ v-if="user.role === 'admin'"
+      :item="{
+        title: 'Suivi taches helice',
+        icon:'ri-survey-line',
+        to: '/suivihelice',
+      }"
+/>
+
+
+
+
+
+  <VerticalNavSectionTitle
+    :item="{
+      heading: 'Mediatheque',
+    }"
+  />
+
+  <VerticalNavLink
+      :item="{
+        title: 'Media',
+        icon:'ri-multi-image-fill',
+        to: '/media',
+      }"
+    />
+
     <VerticalNavLink
     v-if="user.role === 'admin'" 
       :item="{
-        title: 'ajout media',
+        title: 'Ajout media',
+        icon:'ri-gallery-upload-fill',
         to: '/ajoutmedia',
       }"
     />
-  </VerticalNavGroup>
 
-  <!-- 👉 Front Pages -->
-  <!-- ... -->
+    <VerticalNavLink
+    v-if="user.role === 'admin'" 
+      :item="{
+        title: 'Suivi tache media',
+        icon:'ri-survey-line',
+        to: '/suivimedia',
+      }"
+    />
+
+    <VerticalNavSectionTitle
+    :item="{
+      heading: 'Demandes',
+    }"
+  />
+
+  <VerticalNavLink
+  v-if="user.role === 'admin'"
+  :item="{
+    
+    title: 'Lister demandes',
+    icon: 'ri-inbox-unarchive-line',
+    to: '/listedemandes',
+  }"
+/>
+
+<VerticalNavLink
+  
+  :item="{
+    title: 'Demande media',
+    icon: 'ri-mail-send-line',
+    to: '/demande',
+  }"
+/>
+
+
 
   <!-- 👉 Apps & Pages -->
   <VerticalNavSectionTitle
     :item="{
-      heading: 'Apps & Pages',
+      heading: 'User management',
     }"
   />
 
@@ -129,32 +230,10 @@ onMounted(() => {
     }"
   />
 
-  <VerticalNavLink
-  
-    :item="{
-      title: 'Telé',
-      icon: 'ri-remote-control-line',
-      to: '/telecommande',
-    }"
-  />
-  <VerticalNavLink
-  
-  :item="{
-    title: 'Demande media',
-    icon: 'ri-mail-send-line',
-    to: '/demande',
-  }"
-/>
 
-<VerticalNavLink
-  v-if="user.role === 'admin'"
-  :item="{
-    
-    title: 'lister demandes',
-    icon: 'ri-inbox-unarchive-line',
-    to: '/listedemandes',
-  }"
-/>
+
+
+
 
   <VerticalNavSectionTitle
     :item="{

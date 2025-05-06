@@ -5,16 +5,16 @@ import { computed, onMounted, ref } from 'vue'
 const mediaform = ref({
   libelle: '',
   description: '',
-  // Peut être soit une chaîne (nouvelle catégorie) soit un nombre (catégorie existante)
+ 
   categorie_id: '' as string | number,
   souscategorie_id: null as number | null,
-  owner_id: null as number | null, // Nouveau champ pour l'utilisateur
+  owner_id: null as number | null, 
   new_upload_file: null as File | null,
 })
 
 const list_cat_media = ref<any[]>([])
 const list_souscat_media = ref<any[]>([])
-const list_users = ref<any[]>([]) // Liste pour les utilisateurs
+const list_users = ref<any[]>([])  
 
 const Catoptions = computed(() =>
   list_cat_media.value.map(cat => ({ text: cat.nom, value: cat.id }))

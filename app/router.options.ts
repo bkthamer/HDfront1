@@ -14,7 +14,7 @@ export default <RouterConfig>{
       component: () => import('@/pages/dashboard.vue'),
       beforeEnter: (to, from, next) => {
         let token = null;
-        // Vérifie que window est défini et utilise window.localStorage
+       
         if (typeof window !== 'undefined' && window.localStorage) {
           try {
             token = window.localStorage.getItem('authToken');
@@ -22,7 +22,7 @@ export default <RouterConfig>{
             token = null;
           }
         }
-        // Si un token existe, on autorise l'accès, sinon on redirige vers /login
+       
         token ? next() : next('/login');
       },
     },
@@ -44,7 +44,7 @@ export default <RouterConfig>{
     },
   ],
   
-  // Hook global qui vérifie également la présence du token
+  
   async beforeEach(to, from, next) {
     let token = null;
     if (typeof window !== 'undefined' && window.localStorage) {

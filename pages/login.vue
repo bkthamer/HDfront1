@@ -22,18 +22,28 @@ const authThemeMask = computed(() => {
   return vuetifyTheme.global.name.value === 'light' ? authV1MaskLight : authV1MaskDark;
 });
 
-// Fonction pour effectuer la connexion
+
 const login = async (email: string, password: string) => {
   try {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/login`, { // Remplacez par l'URL de votre API
+    
+    
+
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/login`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     });
 
-    // Vérification si la réponse est valide
+    
+    if (!response.ok) {
+      const rawResponse = await response.text();
+      console.error('[DEBUG] Raw server response:', rawResponse);
+      throw new Error(`HTTP error! Status: ${response.status}`);
+    }
+
+
+
+    
     if (!response.ok) {
       const errorData = await response.json();
       console.error('Error response:', errorData);
@@ -41,10 +51,10 @@ const login = async (email: string, password: string) => {
     }
 
     const data = await response.json();
-    console.log('API response:', data); // Pour vérifier la réponse de l'API
+    console.log('API response:', data); 
 
     if (data.access_token) {
-      // Stocke le token dans localStorage
+      
       localStorage.setItem('authToken', data.access_token);
       return data.access_token;
     } else {
@@ -56,7 +66,7 @@ const login = async (email: string, password: string) => {
   }
 };
 
-// Fonction pour gérer la soumission du formulaire de login
+
 const handleLogin = async () => {
   try {
     const { email, password } = form.value;
@@ -66,11 +76,11 @@ const handleLogin = async () => {
 
     const token = await login(email, password);
 
-    // Redirige l'utilisateur vers le dashboard après la connexion réussie
+    
     router.push('/dashboard');
   } catch (error) {
     console.error('Login failed:', error);
-    // Vous pouvez afficher une alerte ou un message d'erreur ici
+    
     alert('Login failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
   }
 };
