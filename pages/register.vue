@@ -17,7 +17,7 @@
           <VCardText>
             <VForm @submit.prevent="handleSubmit">
               <VRow>
-                
+                <!-- debut form -->
                 <VCol cols="12">
                   <VRow no-gutters>
                     <VCol cols="12" md="3">
@@ -36,7 +36,7 @@
                   </VRow>
                 </VCol>
 
-                <!-- Email -->
+               
                 <VCol cols="12">
                   <VRow no-gutters>
                     <VCol cols="12" md="3">
@@ -57,7 +57,7 @@
                   </VRow>
                 </VCol>
 
-                <!-- Mobile (nouveau) -->
+               
                 <VCol cols="12">
                   <VRow no-gutters>
                     <VCol cols="12" md="3">
@@ -77,7 +77,7 @@
                   </VRow>
                 </VCol>
 
-                <!-- Password -->
+                
                 <VCol cols="12">
                   <VRow no-gutters>
                     <VCol cols="12" md="3">
@@ -99,7 +99,7 @@
                   </VRow>
                 </VCol>
 
-                <!-- Remember me -->
+               
                 <VCol cols="12">
                   <VRow no-gutters>
                     <VCol cols="12" md="3" />
@@ -114,7 +114,7 @@
                   </VRow>
                 </VCol>
 
-                <!-- Message d'erreur -->
+                
                 <VCol cols="12">
                   <VAlert
                     v-if="errorMessage"
@@ -126,7 +126,7 @@
                   </VAlert>
                 </VCol>
 
-                <!-- Boutons Submit / Reset -->
+                
                 <VCol cols="12">
                   <VRow no-gutters>
                     <VCol cols="12" md="3" />

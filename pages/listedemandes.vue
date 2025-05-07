@@ -7,7 +7,7 @@
       class="text-no-wrap"
       :items-per-page="5"
     >
-      <!-- Colonne Email -->
+      <!-- Formulaire debut -->
       <template #item.email="{ item }">
         <div class="d-flex align-center gap-x-2">
          
@@ -15,7 +15,7 @@
         </div>
       </template>
 
-      <!-- Colonne Sujet améliorée -->
+   
       <template #item.sujet="{ item }">
         <div class="d-flex align-center gap-x-4">
 
@@ -26,14 +26,14 @@
         </div>
       </template>
 
-      <!-- Colonne Description -->
+      
       <template #item.description="{ item }">
         <div class="text-body-2 text-truncate" style="max-width: 300px;">
           {{ item.description }}
         </div>
       </template>
 
-      <!-- Colonne Date avec statut -->
+     
       <template #item.date="{ item }">
         <div class="d-flex flex-column gap-1">
           <VChip :color="getStatusColor(item)" size="small" class="text-capitalize">
@@ -45,7 +45,7 @@
         </div>
       </template>
 
-      <!-- Colonne Image avec actions -->
+      
       <template #item.image="{ item }">
         <div class="d-flex align-center gap-4">
           <VImg
@@ -68,7 +68,7 @@
       </template>
     </VDataTable>
 
-    <!-- Dialogue pour l'image -->
+    
     <VDialog v-model="dialog" max-width="600px">
       <VCard class="dialog-card">
         <VImg :src="selectedImage" aspect-ratio="1.5" contain />

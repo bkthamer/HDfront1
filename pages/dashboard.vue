@@ -60,7 +60,7 @@ onMounted(() => {
 <template>
   <VContainer fluid>
     <VRow class="match-height" no-gutters>
-      <!-- Bloc supérieur : 3 cartes alignées harmonieusement -->
+     <!-- debut dash board -->
       <VCol cols="12" sm="6" md="4" lg="4">
         <AnalyticsAward  v-if="user.role === 'admin'" />
       </VCol>
@@ -73,7 +73,7 @@ onMounted(() => {
         <Pdv v-if="user.role === 'admin'" />
       </VCol>
 
-      <!-- Bloc central : 2 composants bien équilibrés -->
+
       <VCol cols="12" sm="6" md="6" lg="6">
         <AnalyticsWeeklyOverview  v-if="user.role === 'admin'" />
       </VCol>

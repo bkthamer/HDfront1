@@ -12,7 +12,8 @@ export default defineNuxtPlugin((nuxtApp) => {
     router.beforeEach((to, from, next) => {
       
       const token = localStorage.getItem('authToken')
-      const protectedRoutes = ['/dashboard', '/users','/telecommande']
+      /* route protected */
+      const protectedRoutes = ['/dashboard', '/users','/telecommande','/suiviplaylist','/gestionplaylist','/playlist','/media','/demande','/account-settings','//ajoutplaylist','/ajoutmedia','/listedemandes','/users','/register']
 
      
       if ((protectedRoutes.includes(to.name as string) || protectedRoutes.includes(to.path)) && !token) {

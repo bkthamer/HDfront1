@@ -333,7 +333,7 @@ onMounted(async () => {
   padding: 0 20px;
 }
 
-/* Styles pour la Mediacard */
+/* media card bg-sh-cd */
 .mediacard {
   border-radius: 12px;
   overflow: hidden;

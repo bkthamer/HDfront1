@@ -449,7 +449,7 @@ onMounted(async () => {
         Périodique
       </VBtn>
 
-      <!-- Nouveau bouton pour voir les planifications existantes -->
+      <!-- button permet a lutilisateur voir tout , mais pour user il peut voir seulement planif de son playlist seulement -->
       <VBtn
       v-if="user.role === 'admin' || (user.role === 'user' && actionPlaylist?.proprietaire === user.id_user)"
         color="info"
