@@ -36,7 +36,7 @@ onMounted(() => {
 
 const fetchUsersCount = async () => {
   try {
-    const response = await fetch("http://127.0.0.1:8000/nombre_demande", {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/nombre_demande`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -57,7 +57,7 @@ const updateChart = () => {
   }
 
   if (chartRef.value) {
-    // Chaque demande représente 25%
+    
     const fillPercentage = Math.min(totalUsers.value * 25, 100);
     chartInstance = new Chart(chartRef.value, {
       type: "doughnut",

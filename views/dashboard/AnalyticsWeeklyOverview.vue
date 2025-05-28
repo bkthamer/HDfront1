@@ -25,15 +25,13 @@ Chart.register(
 const chartRef = ref<HTMLCanvasElement | null>(null)
 let chartInstance: Chart | null = null
 
-/**
- * Récupère les demandes via l'API et met à jour le bar chart
- */
+
 const fetchDemandes = async () => {
   try {
-    const response = await fetch('http://127.0.0.1:8000/demandes')
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/demandes`)
     const data = await response.json()
 
-    // Tableau de 12 positions (0 = Janvier, 11 = Décembre)
+   
     const monthlyCounts = Array(12).fill(0)
 
     data.forEach((demande: any) => {
@@ -41,17 +39,17 @@ const fetchDemandes = async () => {
       monthlyCounts[date.getMonth()]++
     })
 
-    // Si un chart existe déjà, on le détruit pour éviter des doublons
+   
     if (chartInstance) {
       chartInstance.destroy()
     }
 
     if (chartRef.value) {
-      // Création du contexte 2D pour le canvas
+
       const ctx = chartRef.value.getContext('2d')
       if (!ctx) return
 
-      // Création d'un dégradé vertical pour les barres
+     
       const gradient = ctx.createLinearGradient(0, 0, 0, 400)
       gradient.addColorStop(0, 'rgba(75, 192, 192, 0.7)')
       gradient.addColorStop(1, 'rgba(75, 192, 192, 0.1)')
@@ -68,7 +66,7 @@ const fetchDemandes = async () => {
             {
               label: 'Number of Demandes',
               data: monthlyCounts,
-              backgroundColor: gradient,   // On utilise le dégradé
+              backgroundColor: gradient,   
               borderColor: 'rgb(75, 192, 192)',
               borderWidth: 1
             }
@@ -76,7 +74,7 @@ const fetchDemandes = async () => {
         },
         options: {
           responsive: true,
-          maintainAspectRatio: false, // Laisse le container gérer la taille
+          maintainAspectRatio: false, 
           plugins: {
             title: {
               display: true,
@@ -129,14 +127,14 @@ onMounted(() => {
   <div class="card">
     <h2 class="card-title">Demandes par mois</h2>
     <div class="chart-wrapper">
-      <!-- Le canvas qui contiendra notre bar chart -->
+      
       <canvas ref="chartRef"></canvas>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* Style global de la « carte » */
+
 .card {
   max-width: 700px;
   margin: 20px auto;
@@ -149,7 +147,7 @@ onMounted(() => {
   align-items: center;
 }
 
-/* Titre de la carte */
+
 .card-title {
   margin: 0.5rem 0;
   font-size: 1.5rem;

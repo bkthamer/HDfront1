@@ -6,8 +6,11 @@ const playlistForm = ref({
   pl_libelle: '',
   pl_description: '',
   pl_proprietaire: null as number | null, 
-  pl_mode:        'OFF' as string
+  pl_mode:        'Auto' as string
 })
+
+
+const toast = (useNuxtApp().$toast as any)
 
 const list_users = ref<any[]>([])
 const Useroptions = computed(() =>
@@ -16,7 +19,7 @@ const Useroptions = computed(() =>
 
 async function refresh_users() {
   try {
-    const response = await axios.get('http://127.0.0.1:8000/users')
+    const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/users`)
     list_users.value = response.data
   } catch (error) {
     console.error('Erreur utilisateurs:', error)
@@ -40,7 +43,7 @@ const onSubmit = async () => {
   const proprietaireValue = playlistForm.value.pl_proprietaire ?? 0
 
   try {
-    const resp = await $fetch('http://127.0.0.1:8000/playlist/add', {
+    const resp = await $fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/add`, {
       method: 'POST',
       body: {
         pl_libelle:       playlistForm.value.pl_libelle,
@@ -51,6 +54,17 @@ const onSubmit = async () => {
       }
     })
     retourapi.value = resp as { etat: string; message: string }
+    if (retourapi.value.etat === 'success') {
+      toast.success('Playlist ajoutée avec succès !')
+      playlistForm.value = {
+        pl_libelle: '',
+        pl_description: '',
+        pl_proprietaire: null,
+        pl_mode: 'Auto'
+      }
+    } else {
+      toast.error(`Erreur : ${retourapi.value.message}`)
+    }
   } catch (error) {
     console.error('Erreur soumission:', error)
   }

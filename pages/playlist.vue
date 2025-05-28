@@ -17,6 +17,7 @@ const user = ref<User>({ email: 'Unknown', role: 'User', id_user: undefined, sit
 const categories = ref<Categorie[]>([]);
 const sousCategories = ref<SousCategorie[]>([]);
 const groupedPlaylists = ref<GroupedPlaylist[]>([]);
+const pdvAssociations = ref<{ [playlistId: number]: string[] }>({});
 const selectedCategory = ref<number | null>(null);
 const selectedSubCategory = ref<number | null>(null);
 const showPlaylistModal = ref(false);
@@ -26,6 +27,13 @@ const materiels = ref<Materiel[]>([]);
 const selectedPDVs = ref<{ [playlistId: number]: string | null }>({});
 const showExistingSchedulesModal = ref(false)
 const existingSchedules = ref<any[]>([])
+
+const isForAddPlanif = ref(false);
+const choicePlaylist = ref<Playlist|null>(null);
+
+
+const isPDVAssociated = ref(false);
+
 
 
 const showPDVActionModal = ref(false);
@@ -37,6 +45,45 @@ const showPDVModal = ref(false);
 const selectedPDVList = ref<PDV[]>([]);
 const selectedPlaylistTitle = ref<string>('');
 const selectedPlaylist = ref<Playlist | null>(null);
+
+
+const submitPlanif = async () => {
+  const form = scheduleForm.value;
+  if (!form.sch_playlist_id) return;
+  const payload = {
+    sch_playlist_id:  form.sch_playlist_id,
+    sch_start_to_end: form.sch_start_to_end,
+    sch_start_date:    new Date(form.sch_start_date).toISOString().split('T')[0],
+    sch_end_date:      new Date(form.sch_end_date).toISOString().split('T')[0],
+    sch_day_of_week:  form.sch_day_of_week,
+    sch_hour_start:   form.sch_hour_start.slice(0,5),
+    sch_hour_end:     form.sch_hour_end.slice(0,5)
+  };
+  try {
+    await $fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/addplanif`, {
+      method: 'POST',
+      body: payload
+    });
+    showScheduleModal.value = false;
+    isForAddPlanif.value   = false;
+    toast.success('Planification personnalisée ajoutée avec succès');
+   
+  } catch (err) {
+    console.error('Erreur addPlanif', err);
+    toast.error('Échec de l’ajout de la planification personnalisée');
+  }
+};
+
+
+
+
+function openForAddPlanif(pl: Playlist, type: 'date'|'periodic') {
+  choicePlaylist.value               = pl;
+  scheduleForm.value.sch_playlist_id = pl.id;
+  scheduleType.value                 = type;
+  isForAddPlanif.value               = true;
+  showScheduleModal.value            = true;
+}
 
 
 const filterGroupedPlaylists = computed(() => {
@@ -63,6 +110,9 @@ const fetchUser = async () => {
       user.value.email = decoded.sub || 'Unknown';
       user.value.role = decoded.role || 'User';
       user.value.site_id = decoded.site_id || '0';
+      console.log('User role:', user.value.role);
+      console.log('User site_id:', user.value.site_id);
+      console.log('User email:', user.value.email);
       await fetchUserId();
     } catch (error) {
       console.error('Erreur décodage token', error);
@@ -72,7 +122,7 @@ const fetchUser = async () => {
 
 const fetchUserId = async () => {
   try {
-    const { user_id } = await $fetch<{ user_id: number }>('http://127.0.0.1:8000/get_user_id', {
+    const { user_id } = await $fetch<{ user_id: number }>(`${import.meta.env.VITE_API_BASE_URL}/get_user_id`, {
       method: 'POST',
       body: { email: user.value.email }
     });
@@ -83,18 +133,51 @@ const fetchUserId = async () => {
 };
 
 
+
+async function subscribeAll(pl: Playlist) {
+  try {
+    const schedules = await $fetch<any[]>(`${import.meta.env.VITE_API_BASE_URL}/playlist/listgrille/${pl.id}`);
+    for (const s of schedules) {
+      await $fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/abonne`, {
+        method: 'POST',
+        body: {
+          sch_playlist_id:  pl.id,
+          sch_start_to_end: s.start_to_end ?? true,
+          sch_start_date:   s.start_date,
+          sch_end_date:     s.end_date,
+          sch_day_of_week:  s.day_of_week,
+          sch_hour_start:   s.hour_start,
+          sch_hour_end:     s.hour_end
+        }
+      });
+    }
+    toast.success('Abonnement à la playlist réussi');
+  } catch (e) {
+    console.error(e);
+    alert('Échec de l’abonnement');
+  }
+}
+
+
+
 const fetchPlaylistsData = async () => {
   try {
-    const playlistsData = await $fetch<Playlist[]>('http://127.0.0.1:8000/playlist/list');
+    const playlistsData = await $fetch<Playlist[]>(`${import.meta.env.VITE_API_BASE_URL}/playlist/list`);
     const visible = user.value.role === 'admin'
       ? playlistsData
       : playlistsData.filter(p => p.proprietaire === 0 || p.proprietaire === user.value.id_user);
 
     const groups = await Promise.all(
-      visible.map(async playlist => ({
-        playlist,
-        medias: await $fetch<Media[]>(`http://127.0.0.1:8000/playlist/listmedia/${playlist.id}`)
-      }))
+      visible.map(async playlist => {
+        
+        const pdvs = await $fetch<PDV[]>(`${import.meta.env.VITE_API_BASE_URL}/playlist/listpdv/${playlist.id}`);
+        pdvAssociations.value[playlist.id] = pdvs.map(p => p.pdv_hdref);
+        
+        return {
+          playlist,
+          medias: await $fetch<Media[]>(`${import.meta.env.VITE_API_BASE_URL}/playlist/listmedia/${playlist.id}`)
+        };
+      })
     );
     groupedPlaylists.value = groups;
   } catch (error) {
@@ -103,24 +186,36 @@ const fetchPlaylistsData = async () => {
 };
 
 const fetchCategories = async () => {
-  try { categories.value = await $fetch<Categorie[]>('http://127.0.0.1:8000/categories_all'); }
+  try { categories.value = await $fetch<Categorie[]>(`${import.meta.env.VITE_API_BASE_URL}/categories_all`); }
   catch (error) { console.error('Erreur fetchCategories', error); }
 };
 const fetchSousCategories = async () => {
-  try { sousCategories.value = await $fetch<SousCategorie[]>('http://127.0.0.1:8000/souscategorie_all'); }
+  try { sousCategories.value = await $fetch<SousCategorie[]>(`${import.meta.env.VITE_API_BASE_URL}/souscategorie_all`); }
   catch (error) { console.error('Erreur fetchSousCategories', error); }
 };
+
+
 const fetchMaterielsBySite = async () => {
-  try { materiels.value = await $fetch<Materiel[]>(`http://127.0.0.1:8000/pdv/list/bysite/${user.value.site_id}`); }
-  catch (error) { console.error('Erreur fetchMaterielsBySite', error); }
-};
+  try {
+
+    const url =
+      user.value.role === 'admin'
+        ? `${import.meta.env.VITE_API_BASE_URL}/pdv/list`
+        : `${import.meta.env.VITE_API_BASE_URL}/pdv/list/bysite/${user.value.site_id}`
+
+    const response = await $fetch(url)
+    materiels.value = response as Materiel[]
+  } catch (error) {
+    console.error('Erreur récupération matériels:', error)
+  }
+}
 
 
 const addPDVToPlaylist = async (playlistId: number, pdvHdref: string) => {
   const pdv = materiels.value.find(m => m.materiel_hdref === pdvHdref);
   if (!pdv) return;
   try {
-    await $fetch('http://127.0.0.1:8000/playlist/majpdv', {
+    await $fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/majpdv`, {
       method: 'POST',
       body: { list_pdv_id: [pdv.id], del_pdv_id: [], pip_playlist_id: playlistId, pip_add_by: user.value.email }
     });
@@ -133,44 +228,102 @@ const addPDVToPlaylist = async (playlistId: number, pdvHdref: string) => {
 const plOn = async (id: number) => {
   try {
     const email = encodeURIComponent(user.value.email);
-    await fetch(`http://127.0.0.1:8000/playlist/on/${id}?qui=${email}`);
+    await fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/on/${id}?qui=${email}`);
+    toast.success('Playlist activée avec succès');
   }
   catch (e) { console.error('Erreur plOn', e); }
+  
 };
 const plOff = async (id: number) => {
   try {
     const email = encodeURIComponent(user.value.email);
-    const res = await fetch(`http://127.0.0.1:8000/playlist/off/${id}?qui=${email}`);
+    const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/off/${id}?qui=${email}`);
     if (!res.ok) throw new Error(await res.json().then(r => r.detail).catch(() => `HTTP ${res.status}`));
     await fetchPlaylistsData();
+    toast.success('Playlist désactivée avec succès');
   } catch (e) { 
     if (e instanceof Error) {
       console.error('Erreur plOff', e); 
-      alert(`Échec désactivation: ${e.message}`);
+      toast.error('Échec désactivation: ' + e.message);
     } else {
       console.error('Erreur plOff', e); 
-      alert('Échec désactivation: Une erreur inconnue est survenue.');
+     
     }
   }
 };
 
 
+
 const onPDVSelect = async (pl: Playlist, hd: string) => {
+  actionPlaylist.value = pl;
+  actionPDVHdref.value = hd;
+  showPDVActionModal.value = true;
+
+ 
+  const pdv = materiels.value.find(m => m.materiel_hdref === hd);
+  if (!pdv) {
+    isPDVAssociated.value = false;
+    return;
+  }
+
   try {
-    await addPDVToPlaylist(pl.id, hd);
-    actionPlaylist.value = pl;
-    actionPDVHdref.value = hd;
-    showPDVActionModal.value = true;
-    selectedPDVs.value[pl.id] = null;
-  } catch {};
+   
+    await $fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/pip/${pl.id}/${pdv.id}`);
+    isPDVAssociated.value = true;
+  } catch (error) {
+    const err = error as { response?: { status?: number } };
+    if (err.response?.status === 404) {
+      isPDVAssociated.value = false;
+    } else {
+      console.error('Erreur vérification association PDV', error);
+      isPDVAssociated.value = false;
+    }
+  }
 };
+
+
+
+const togglePDVAssociation = async (shouldAssociate: boolean) => {
+  if (!actionPlaylist.value || !actionPDVHdref.value) return;
+  const pdv = materiels.value.find(m => m.materiel_hdref === actionPDVHdref.value);
+  if (!pdv) return;
+
+  try {
+
+
+    const currentAssociations = pdvAssociations.value[actionPlaylist.value.id] || [];
+    pdvAssociations.value[actionPlaylist.value.id] = shouldAssociate 
+      ? [...currentAssociations, actionPDVHdref.value]
+      : currentAssociations.filter(hdref => hdref !== actionPDVHdref.value);
+
+
+    await $fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/majpdv`, {
+      method: 'POST',
+      body: {
+        list_pdv_id:   shouldAssociate ? [pdv.id] : [],
+        del_pdv_id:    shouldAssociate ? [] : [pdv.id],
+        pip_playlist_id: actionPlaylist.value.id,
+        pip_add_by:      user.value.email
+      }
+    });
+    await fetchMaterielsBySite(); 
+    
+    toast.success(`PDV ${shouldAssociate ? 'associé' : 'désassocié'} avec succès`);
+    isPDVAssociated.value = shouldAssociate;
+  } catch (error) {
+    toast.error('Échec de l’association du PDV');
+    console.error('Erreur togglePDVAssociation', error);
+
+  }
+};
+
 const confirmOn = async () => { if (actionPlaylist.value) { await plOn(actionPlaylist.value.id); await fetchPlaylistsData(); showPDVActionModal.value = false; }};
 const confirmOff = async () => { if (actionPlaylist.value) { await plOff(actionPlaylist.value.id); showPDVActionModal.value = false; }};
 
 
 const fetchExistingSchedules = async (playlistId: number) => {
   try {
-    existingSchedules.value = await $fetch(`http://127.0.0.1:8000/playlist/listgrille/${playlistId}`)
+    existingSchedules.value = await $fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/listgrille/${playlistId}`)
     showExistingSchedulesModal.value = true
   } catch (error) {
     console.error('Erreur fetchExistingSchedules', error)
@@ -178,9 +331,11 @@ const fetchExistingSchedules = async (playlistId: number) => {
   }
 }
 
+const toast = (useNuxtApp().$toast as any)
+
 const deletePlaylist = async (id: number) => {
   try {
-    await $fetch('http://127.0.0.1:8000/playlist/delete', {
+    await $fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/delete`, {
       method: 'DELETE',
      
       body: { 
@@ -189,21 +344,44 @@ const deletePlaylist = async (id: number) => {
       },
     });
     await fetchPlaylistsData();
+    toast.success('Playlist supprimée avec succès');
   } catch (e) {
     console.error('Erreur suppression playlist', e);
-    alert('Échec de la suppression');
+    toast.error('Échec de la suppression de la playlist');
   }
 };
 
 
 
-const openPlaylistModal = async (m: Media) => { currentMedia.value = m; playlists.value = await $fetch<Playlist[]>('http://127.0.0.1:8000/playlist/list'); showPlaylistModal.value = true; };
-const addMediaToPlaylist = async (pid: number) => { if (!currentMedia.value) return; await $fetch('http://127.0.0.1:8000/playlist/addmedia',{method:'POST',body:{mip_media_id:currentMedia.value.id,mip_playlist_id:pid}}); await fetchPlaylistsData(); showPlaylistModal.value = false; };
-const removeMediaFromPlaylist = async (pid:number, mid:number)=>{ await $fetch('http://127.0.0.1:8000/playlist/majmedia',{method:'POST',body:{list_media_id:[],del_media_id:[mid],mip_playlist_id:pid,mip_add_by:user.value.email}}); fetchPlaylistsData(); };
+const openPlaylistModal = async (m: Media) => { currentMedia.value = m; playlists.value = await $fetch<Playlist[]>(`${import.meta.env.VITE_API_BASE_URL}/playlist/list`); showPlaylistModal.value = true; };
+const addMediaToPlaylist = async (pid: number) => { if (!currentMedia.value) return; await $fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/addmedia`,{method:'POST',body:{mip_media_id:currentMedia.value.id,mip_playlist_id:pid}}); await fetchPlaylistsData(); showPlaylistModal.value = false; };
 
 
-const openPDVPopup = async (pl:Playlist) => { selectedPDVList.value = await $fetch<PDV[]>(`http://127.0.0.1:8000/playlist/listpdv/${pl.id}`); selectedPlaylistTitle.value=pl.libelle; selectedPlaylist.value=pl; showPDVModal.value=true; };
-const removePDVFromPlaylist = async (pid:number) => { if(!selectedPlaylist.value) return; await $fetch('http://127.0.0.1:8000/playlist/majpdv',{method:'POST',body:{list_pdv_id:[],del_pdv_id:[pid],pip_playlist_id:selectedPlaylist.value.id,pip_add_by:user.value.email}}); openPDVPopup(selectedPlaylist.value); };
+const removeMediaFromPlaylist = async (
+  pid: number,
+  mid: number
+): Promise<void> => {
+  try {
+    await $fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/majmedia`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: {
+        list_media_id: [],          
+        del_media_id: [mid],        
+        mip_playlist_id: pid,       
+        mip_add_by: user.value.email
+      }
+    })
+    await fetchPlaylistsData()
+  } catch (error) {
+    console.error('Erreur lors de la mise à jour de la playlist :', error)
+  }
+}
+
+const openPDVPopup = async (pl:Playlist) => { selectedPDVList.value = await $fetch<PDV[]>(`${import.meta.env.VITE_API_BASE_URL}/playlist/listpdv/${pl.id}`); selectedPlaylistTitle.value=pl.libelle; selectedPlaylist.value=pl; showPDVModal.value=true; };
+const removePDVFromPlaylist = async (pid:number) => { if(!selectedPlaylist.value) return; await $fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/majpdv`,{method:'POST',body:{list_pdv_id:[],del_pdv_id:[pid],pip_playlist_id:selectedPlaylist.value.id,pip_add_by:user.value.email}}); openPDVPopup(selectedPlaylist.value); };
 
 
 
@@ -266,20 +444,23 @@ const submitSchedule = async () => {
   }
 
   try {
-    await $fetch('http://127.0.0.1:8000/playlist/addgrille', {
+    await $fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/addgrille`, {
       method: 'POST',
       body: payload
     })
     showScheduleModal.value = false
+    toast.success('Planification ajoutée avec succès')
   } catch (error) {
     console.error('Erreur lors de la planification', error)
     if (error instanceof Error) {
-      alert('Échec de la planification : ' + (error as any).data?.detail || error.message);
+      
+      toast.error('Échec de la planification : ' + (error as any).data?.detail || error.message);
     } else {
-      alert('Échec de la planification : Une erreur inconnue est survenue.');
+      toast.error('Échec de la planification');
     }
   }
 }
+
 
 
 
@@ -287,7 +468,7 @@ const deleteSchedule = async (id: number) => {
   if (!actionPlaylist.value) return;
   
   try {
-    await $fetch('http://127.0.0.1:8000/playlist/delgrille', {
+    await $fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/delgrille`, {
       method: 'DELETE',
       body: {
         id: id,
@@ -297,10 +478,10 @@ const deleteSchedule = async (id: number) => {
     
    
     await fetchExistingSchedules(actionPlaylist.value.id);
-    alert('Planification supprimée avec succès');
+    toast.success('Planification supprimée avec succès');
   } catch (error) {
     console.error('Erreur lors de la suppression', error);
-    alert('Échec de la suppression de la planification');
+    toast.error('Échec de la suppression de la planification');
   }
 }
 
@@ -331,14 +512,15 @@ onMounted(async () => {
         <h3 class="playlist-title">{{ group.playlist.libelle }}</h3>
         <p class="playlist-description">{{ group.playlist.description }}</p>
         <span class="badge">{{ group.medias.length }} médias</span>
-        <v-select
-          v-model="selectedPDVs[group.playlist.id]"
-          :items="matOptions"
-          placeholder="Sélectionner un PDV"
-          outlined
-          class="combined-select"
-          @update:modelValue="val => onPDVSelect(group.playlist, val)"
-        />
+<v-select
+  :key="group.playlist.id"
+  v-model="selectedPDVs[group.playlist.id]"
+  :items="matOptions"
+  placeholder="Sélectionner un PDV"
+  clearable
+  @update:modelValue="val => onPDVSelect(group.playlist, val)"
+  @blur="selectedPDVs[group.playlist.id] = null"
+/>
         <div class="flex justify-between items-center mt-4">
           <VBtn
             v-if="user.role === 'admin'"
@@ -354,6 +536,29 @@ onMounted(async () => {
           >
             <UIcon name="i-heroicons-information-circle" class="mr-1" /> PDV
           </VBtn>
+
+
+          <VBtn
+  v-if="user.role === 'admin'"
+ 
+
+  size="large"
+  class="ml-2"
+  @click="openForAddPlanif(group.playlist, 'date')"
+>
+  <UIcon name="i-heroicons-calendar-days" class="mr-1" />
+  Planif Date
+</VBtn>
+<VBtn
+  v-if="user.role === 'admin'"
+ 
+  size="large"
+  class="ml-2"
+  @click="openForAddPlanif(group.playlist, 'periodic')"
+>
+  <UIcon name="i-heroicons-clock" class="mr-1" />
+  Planif Périodique
+</VBtn>
         </div>
       </div>
 
@@ -395,6 +600,13 @@ onMounted(async () => {
       <span class="text-gradient">{{ actionPlaylist?.libelle }}</span>
     </VCardTitle>
 
+        <VCheckbox
+  :model-value="isPDVAssociated"
+  label="Associer / Désassocier ce PDV"
+  color="primary"
+  @update:modelValue="val => { if (val !== null) togglePDVAssociation(val) }"
+/>
+
     <VCardText class="px-6 pt-0 pb-4">
       <div class="d-flex align-center pa-4 rounded-lg bg-grey-lighten-4">
         <UIcon name="i-heroicons-tv" class="mr-3 text-indigo" size="22" />
@@ -406,6 +618,7 @@ onMounted(async () => {
 
     <VCardActions class="pa-6 pt-4 justify-space-between">
       <VBtn
+      v-if="user.role === 'admin' || (user.role === 'user' && actionPlaylist?.proprietaire === user.id_user)"
         color="success"
         variant="flat"
         size="large"
@@ -417,6 +630,7 @@ onMounted(async () => {
       </VBtn>
       
       <VBtn
+      v-if="user.role === 'admin' || (user.role === 'user' && actionPlaylist?.proprietaire === user.id_user)"
         color="error"
         variant="flat"
         size="large"
@@ -428,6 +642,7 @@ onMounted(async () => {
       </VBtn>
       
       <VBtn
+      v-if="user.role === 'admin' || (user.role === 'user' && actionPlaylist?.proprietaire === user.id_user)"
         color="primary"
         variant="text"
         size="large"
@@ -439,6 +654,7 @@ onMounted(async () => {
       </VBtn>
       
       <VBtn
+      v-if="user.role === 'admin' || (user.role === 'user' && actionPlaylist?.proprietaire === user.id_user)"
         color="secondary"
         variant="text"
         size="large"
@@ -449,9 +665,22 @@ onMounted(async () => {
         Périodique
       </VBtn>
 
-      <!-- button permet a lutilisateur voir tout , mais pour user il peut voir seulement planif de son playlist seulement -->
+ <VBtn
+   v-if="user.role === 'user' 
+         && actionPlaylist 
+         && actionPlaylist.proprietaire !== user.id_user"
+   color="secondary"
+   variant="text"
+   size="large"
+   @click="subscribeAll(actionPlaylist)"
+ >
+   <UIcon name="i-heroicons-clock" class="mr-2" />
+   s'abonner
+ </VBtn>
+
+      
       <VBtn
-      v-if="user.role === 'admin' || (user.role === 'user' && actionPlaylist?.proprietaire === user.id_user)"
+     
         color="info"
         variant="text"
         size="large"
@@ -559,7 +788,7 @@ onMounted(async () => {
     <VCardActions class="pa-6 pt-0 d-flex justify-end gap-3">
       <VBtn
         color="success"
-        @click="submitSchedule"
+         @click="isForAddPlanif ? submitPlanif() : submitSchedule()"
         variant="flat"
         class="btn-glow"
         style="

@@ -17,7 +17,7 @@
           <VCardText>
             <VForm @submit.prevent="handleSubmit">
               <VRow>
-                <!-- debut form -->
+                
                 <VCol cols="12">
                   <VRow no-gutters>
                     <VCol cols="12" md="3">
@@ -36,7 +36,7 @@
                   </VRow>
                 </VCol>
 
-               
+              
                 <VCol cols="12">
                   <VRow no-gutters>
                     <VCol cols="12" md="3">
@@ -77,7 +77,7 @@
                   </VRow>
                 </VCol>
 
-                
+               
                 <VCol cols="12">
                   <VRow no-gutters>
                     <VCol cols="12" md="3">
@@ -99,7 +99,7 @@
                   </VRow>
                 </VCol>
 
-               
+                
                 <VCol cols="12">
                   <VRow no-gutters>
                     <VCol cols="12" md="3" />
@@ -114,7 +114,6 @@
                   </VRow>
                 </VCol>
 
-                
                 <VCol cols="12">
                   <VAlert
                     v-if="errorMessage"
@@ -126,7 +125,7 @@
                   </VAlert>
                 </VCol>
 
-                
+               
                 <VCol cols="12">
                   <VRow no-gutters>
                     <VCol cols="12" md="3" />
@@ -196,13 +195,14 @@ const authThemeMask = computed(() =>
     : authV1MaskDark
 )
 
+const toast = (useNuxtApp().$toast as any)
 
 async function handleSubmit() {
   isSubmitting.value = true
   errorMessage.value = null
 
   try {
-    const { error } = await useFetch('http://127.0.0.1:8000/creer_compte', {
+    const { error } = await useFetch(`${import.meta.env.VITE_API_BASE_URL}/creer_compte`, {
       method: 'POST',
       body: JSON.stringify({
         email: email.value,
@@ -216,10 +216,11 @@ async function handleSubmit() {
       throw new Error(typeof detail === 'string' ? detail : 'Échec création compte')
     }
 
-    alert('Compte créé avec succès')
+    toast.success('Compte créé avec succès !')  
   
   } catch (err: any) {
     errorMessage.value = err.message || 'Une erreur est survenue'
+    
   } finally {
     isSubmitting.value = false
   }

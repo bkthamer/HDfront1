@@ -29,6 +29,7 @@ export default defineNuxtConfig({
     '@styles/styles.scss',
     '@/plugins/iconify/icons.css',
     '@layouts/styles/index.scss',
+    'vue-toastification/dist/index.css',
   ],
 
   components: {
@@ -44,7 +45,7 @@ export default defineNuxtConfig({
     }],
   },
 
-  plugins: ['@/plugins/vuetify/index.ts', '@/plugins/iconify/index.ts' , '@/plugins/router-auth.ts' , { src: '~/plugins/router-auth.ts', mode: 'client' }],
+  plugins: ['@/plugins/vuetify/index.ts', '@/plugins/iconify/index.ts' , '@/plugins/router-auth.ts' , { src: '~/plugins/router-auth.ts', mode: 'client' } , { src: '~/plugins/toastification.js', mode: 'client' }],
 
   imports: {
     dirs: ['./@core/utils', './@core/composable/', './plugins/*/composables/*'],
@@ -99,11 +100,20 @@ export default defineNuxtConfig({
     },
 
     build: {
+    transpile: [
+      'vuetify', 
+      'vue-toastification',
+      
+    ],
       chunkSizeWarningLimit: 5000,
     },
 
     optimizeDeps: {
-      exclude: ['vuetify'],
+      exclude: [
+        'vuetify',
+        'vue-toastification'
+
+      ],
       entries: [
         './**/*.vue',
       ],

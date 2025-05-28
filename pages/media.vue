@@ -72,7 +72,7 @@ const fetchUser = async () => {
 
 const fetchUserId = async () => {
   try {
-    const response = await $fetch<{ user_id: number }>('http://127.0.0.1:8000/get_user_id', {
+    const response = await $fetch<{ user_id: number }>(`${import.meta.env.VITE_API_BASE_URL}/get_user_id`, {
       method: 'POST',
       body: { email: user.value.email },
     });
@@ -85,7 +85,7 @@ const fetchUserId = async () => {
 const fetchMedias = async () => {
   try {
     const { data } = await useLazyAsyncData<Media[]>('medias', () =>
-      $fetch('http://127.0.0.1:8000/mediatheque/list')
+      $fetch(`${import.meta.env.VITE_API_BASE_URL}/mediatheque/list`)
     );
     if (data.value) {
       medias.value = data.value;
@@ -98,7 +98,7 @@ const fetchMedias = async () => {
 
 const fetchCategories = async () => {
   try {
-    const categoriesData = await $fetch<Categorie[]>('http://127.0.0.1:8000/categories_all');
+    const categoriesData = await $fetch<Categorie[]>(`${import.meta.env.VITE_API_BASE_URL}/categories_all`);
     categories.value = categoriesData;
   } catch (error) {
     console.error("Erreur lors de la récupération des catégories:", error);
@@ -107,7 +107,7 @@ const fetchCategories = async () => {
 
 const fetchSousCategories = async () => {
   try {
-    const data = await $fetch<SousCategorie[]>('http://127.0.0.1:8000/souscategorie_all');
+    const data = await $fetch<SousCategorie[]>(`${import.meta.env.VITE_API_BASE_URL}/souscategorie_all`);
     sousCategories.value = data;
   } catch (error) {
     console.error("Erreur lors de la récupération des sous-catégories:", error);
@@ -147,7 +147,7 @@ const selectSubCategory = (id: number | null) => {
 const openPlaylistModal = async (media: Media) => {
   currentMedia.value = media;
   try {
-    const data = await $fetch<Playlist[]>('http://127.0.0.1:8000/playlist/list');
+    const data = await $fetch<Playlist[]>(`${import.meta.env.VITE_API_BASE_URL}/playlist/list`);
     playlists.value = user.value.role === 'admin'
       ? data
       : data.filter(playlist => playlist.proprietaire === user.value.id_user);
@@ -157,6 +157,8 @@ const openPlaylistModal = async (media: Media) => {
   showPlaylistModal.value = true;
 };
 
+
+const toast = (useNuxtApp().$toast as any)
 const addMediaToPlaylist = async (playlistId: number) => {
   if (!currentMedia.value) return;
   try {
@@ -166,13 +168,16 @@ const addMediaToPlaylist = async (playlistId: number) => {
       mip_playlist_id: playlistId,
       mip_add_by: user.value.email,
     };
-    const response = await $fetch('http://127.0.0.1:8000/playlist/majmedia', {
+    const response = await $fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/majmedia`, {
       method: 'POST',
       body: payload,
     });
     console.log("Réponse de la mise à jour :", response);
+
+    toast.success('Média ajouté à la playlist avec succès !');
   } catch (error) {
     console.error("Erreur lors de la mise à jour du média dans la playlist :", error);
+    toast.error('Échec de l’ajout du média à la playlist.');
   }
   
   showPlaylistModal.value = false;
@@ -333,7 +338,7 @@ onMounted(async () => {
   padding: 0 20px;
 }
 
-/* media card bg-sh-cd */
+/* Styles pour la Mediacard */
 .mediacard {
   border-radius: 12px;
   overflow: hidden;

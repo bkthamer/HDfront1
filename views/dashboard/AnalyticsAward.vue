@@ -11,7 +11,7 @@ const totalUsers = ref(0);
 
 const fetchUsersCount = async () => {
   try {
-    const response = await fetch("http://127.0.0.1:8000/users/count");
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/users/count`);
     const data = await response.json();
     totalUsers.value = data.total_users;
     updateChart();

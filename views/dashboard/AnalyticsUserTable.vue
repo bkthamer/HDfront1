@@ -26,12 +26,22 @@ const email = ref<string>('')
 
 const fetchUsers = async () => {
   try {
-    const response = await axios.get('http://127.0.0.1:8000/users')
-    const users = response.data.map((user: any) => ({
+    
+    const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/users`)
+    console.log('API /users response:', response.data)
+
+    
+    const usersArray = Array.isArray(response.data)
+      ? response.data
+      : response.data.results
+
+   
+    const users = usersArray.map((user: any) => ({
       ...user,
       avatar: resolveUserAvatar(user.id_user),
       status: 'active',
     }))
+
     userData.value = users
   } catch (error) {
     console.error('Error fetching users:', error)
@@ -40,7 +50,7 @@ const fetchUsers = async () => {
 
 const fetchSites = async () => {
   try {
-    const response = await axios.get('http://127.0.0.1:8000/sites')
+    const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/sites`)
     sites.value = response.data
   } catch (error) {
     console.error('Error fetching sites:', error)
@@ -88,13 +98,16 @@ const openPopup = (clientId: number, userEmail: string) => {
   showDialog.value = true
 }
 
+const toast = (useNuxtApp().$toast as any)
+
 const assignSite = async (siteId: number) => {
   try {
-    await axios.put('http://127.0.0.1:8000/admin/assign_site', {
+    await axios.put(`${import.meta.env.VITE_API_BASE_URL}/admin/assign_site`, {
       email: email.value,
       site_id: siteId,
     })
     console.log(`Site ${siteId} assigned to user ${email.value}`)
+    toast.success(`Site ${siteId} affecté à l'utilisateur ${email.value}`)
     showDialog.value = false  
   } catch (error) {
     console.error('Error assigning site:', error)
@@ -109,7 +122,13 @@ onMounted(() => {
 
 <template>
   <VCard>
-    <VDataTable :headers="headers" :items="userData" item-value="id_user" class="text-no-wrap">
+    <VDataTable
+  :headers="headers"
+  :items="userData"
+  item-value="id_user"
+  :items-per-page="userData.length"
+  class="text-no-wrap"
+>
       <template #item.username="{ item }">
         <div class="d-flex align-center gap-x-4">
           <VAvatar size="34">

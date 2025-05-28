@@ -95,7 +95,7 @@ const headers = [
 
 const fetchPlaylists = async () => {
   try {
-    const resp = await axios.get<Playlist[]>('http://127.0.0.1:8000/playlist/list')
+    const resp = await axios.get<Playlist[]>(`${import.meta.env.VITE_API_BASE_URL}/playlist/list`)
     playlists.value = resp.data
     if (playlists.value.length > 0) {
       selectedPlaylist.value = playlists.value[0].id
@@ -110,7 +110,7 @@ const fetchPlaylists = async () => {
 const fetchGrilles = async (playlistId: number) => {
   loading.value = true
   try {
-    const resp = await axios.get<GrilleRecord[]>(`http://127.0.0.1:8000/playlist/listgrille/${playlistId}`)
+    const resp = await axios.get<GrilleRecord[]>(`${import.meta.env.VITE_API_BASE_URL}/playlist/listgrille/${playlistId}`)
     records.value = resp.data
   } catch (err) {
     console.error('Erreur chargement grilles :', err)

@@ -36,7 +36,7 @@
           <div class="debug-btn">
             <VBtn @click="handleButtonClick" color="blue">Debug Console</VBtn>
           </div>
-          <!-- Bouton pour restaurer les médias précédents -->
+         
           <div class="restore-btn">
             <VBtn 
   @click="selectedHelice && restorePreviousMedias(selectedHelice)" 
@@ -222,13 +222,13 @@ const paginatedDeletionOptions = computed(() => {
 })
 
 const { data: heliceop_list } = await useLazyAsyncData('heliceop_list', () =>
-  $fetch('http://127.0.0.1:8000/helices/op/list')
+  $fetch(`${import.meta.env.VITE_API_BASE_URL}/helices/op/list`)
 )
 
 const fetchMedias = async () => {
   try {
     const { data } = await useLazyAsyncData<Media[]>('medias', () =>
-      $fetch('http://127.0.0.1:8000/mediatheque/list')
+      $fetch(`${import.meta.env.VITE_API_BASE_URL}/mediatheque/list`)
     )
     if (data.value) {
       medias.value = data.value
@@ -267,7 +267,7 @@ const fetchUser = async () => {
 
 const fetchUserId = async () => {
   try {
-    const response = await $fetch<{ user_id: number }>('http://127.0.0.1:8000/get_user_id', {
+    const response = await $fetch<{ user_id: number }>(`${import.meta.env.VITE_API_BASE_URL}/get_user_id`, {
       method: 'POST',
       body: { email: user.value.email },
     })
@@ -282,8 +282,8 @@ const fetchMaterielsBySite = async () => {
 
     const url =
       user.value.role === 'admin'
-        ? 'http://127.0.0.1:8000/pdv/list'
-        : `http://127.0.0.1:8000/pdv/list/bysite/${user.value.site_id}`
+        ? `${import.meta.env.VITE_API_BASE_URL}/pdv/list`
+        : `${import.meta.env.VITE_API_BASE_URL}/pdv/list/bysite/${user.value.site_id}`
 
     const response = await $fetch(url)
     materiels.value = response as Materiel[]
@@ -295,11 +295,11 @@ const fetchMaterielsBySite = async () => {
 const checkMaterielStatus = async () => {
   if (!selectedHelice.value) return
   try {
-    const ipResponse = await $fetch<{ ip: string }>('http://127.0.0.1:8000/get_ip', {
+    const ipResponse = await $fetch<{ ip: string }>(`${import.meta.env.VITE_API_BASE_URL}/get_ip`, {
       method: 'POST',
       body: { hdref: selectedHelice.value }
     })
-    const pingResponse = await $fetch<{ success: boolean }>('http://127.0.0.1:8000/ping', {
+    const pingResponse = await $fetch<{ success: boolean }>(`${import.meta.env.VITE_API_BASE_URL}/ping`, {
       method: 'POST',
       body: { ip_address: ipResponse.ip }
     })
@@ -331,7 +331,7 @@ const onDropDel = (event: DragEvent) => {
 
 const sendCommand = async (ordre: string, parametres?: Record<string, any>) => {
   try {
-    const response = await $fetch('http://127.0.0.1:8000/helice/remote', {
+    const response = await $fetch(`${import.meta.env.VITE_API_BASE_URL}/helice/remote`, {
       method: 'POST',
       body: { hdref: selectedHelice.value, ordre, ...parametres }
     })
@@ -357,16 +357,23 @@ const cmdReload = async () => {
 const cmdListsd = async () => {
   retoursd.value = await sendCommand('listsd') as string[]
 }
+
+const toast = (useNuxtApp().$toast as any)
+
 const cmdaddfile = async () => {
   if (selectedMedia.value) {
     retour.value = await sendCommand('addmedia', { libelle: selectedMedia.value.libelle }) as string
+    toast.success(`Média ajouté : ${selectedMedia.value.libelle}`)
     selectedMedia.value = null
   }
 }
+
+
 const cmddelfile = async () => {
   if (selectedMediaDel.value) {
     retour.value = await sendCommand('delmedia', { fichier: selectedMediaDel.value }) as string
     selectedMediaDel.value = null
+    toast.success(`Média supprimé `)
     await cmdListsd()
   }
 }
@@ -375,7 +382,7 @@ const cmddelfile = async () => {
 const restorePreviousMedias = async (hdref: string) => {
   try {
     
-    const response = await $fetch('http://127.0.0.1:8000/helice/remote', {
+    const response = await $fetch(`${import.meta.env.VITE_API_BASE_URL}/helice/remote`, {
       method: 'POST',
       body: {
         hdref: hdref,

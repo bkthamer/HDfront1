@@ -7,7 +7,7 @@
       class="text-no-wrap"
       :items-per-page="5"
     >
-      <!-- Formulaire debut -->
+ 
       <template #item.email="{ item }">
         <div class="d-flex align-center gap-x-2">
          
@@ -15,7 +15,7 @@
         </div>
       </template>
 
-   
+
       <template #item.sujet="{ item }">
         <div class="d-flex align-center gap-x-4">
 
@@ -26,14 +26,14 @@
         </div>
       </template>
 
-      
+   
       <template #item.description="{ item }">
         <div class="text-body-2 text-truncate" style="max-width: 300px;">
           {{ item.description }}
         </div>
       </template>
 
-     
+
       <template #item.date="{ item }">
         <div class="d-flex flex-column gap-1">
           <VChip :color="getStatusColor(item)" size="small" class="text-capitalize">
@@ -45,7 +45,7 @@
         </div>
       </template>
 
-      
+   
       <template #item.image="{ item }">
         <div class="d-flex align-center gap-4">
           <VImg
@@ -141,7 +141,7 @@ const formatDate = (date: string) => {
 const getImageUrl = (path: string | null) => {
   if (!path) return ''
   const filename = path.split(/\\|\//).pop()
-  return `http://127.0.0.1:8000/images/${filename}`
+  return `${import.meta.env.VITE_API_BASE_URL}/images/${filename}`
 }
 
 const openImage = (img: string) => {
@@ -156,7 +156,7 @@ const openDetails = (item: Demande) => {
 
 const fetchDemandes = async () => {
   try {
-    const response = await axios.get('http://127.0.0.1:8000/demandes')
+    const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/demandes`)
     demandes.value = response.data.map((d: any) => ({
       ...d,
       id: d.id || Math.random(),

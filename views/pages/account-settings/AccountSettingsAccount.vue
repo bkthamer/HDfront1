@@ -38,6 +38,8 @@ const fetchUser = () => {
 
 onMounted(fetchUser);
 
+const toast = (useNuxtApp().$toast as any)
+
 const saveChanges = async () => {
   const token = localStorage.getItem('authToken');
   if (!token) {
@@ -46,27 +48,28 @@ const saveChanges = async () => {
   }
 
   try {
-    // On vérifie si le mot de passe a été modifié, sinon on ne l'envoie pas
+    
     const updatedData: any = {};
     if (user.value.password !== 'password') {
       updatedData.password = user.value.password;
     }
 
     const response = await axios.put(
-      'http://127.0.0.1:8000/update_user', 
-      updatedData, // On envoie uniquement le mot de passe si il a été modifié
+      `${import.meta.env.VITE_API_BASE_URL}/update_user`, 
+      updatedData, 
       {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       }
     );
+    toast.success('mot de passe updated successfully!');
 
     console.log('Changes saved', response.data);
-    alert('Profile updated successfully!');
+    
   } catch (error) {
     console.error('Error updating profile:', error);
-    alert('Failed to update profile');
+    toast.error('Error updating profile');
   }
 };
 

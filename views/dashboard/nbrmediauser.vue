@@ -41,7 +41,7 @@ onMounted(() => {
 
 const fetchUsersCount = async () => {
   try {
-    const response = await fetch("http://127.0.0.1:8000/count_media_by_id_user", {
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/count_media_by_id_user`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

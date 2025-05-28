@@ -1,6 +1,12 @@
 <script setup lang="ts">
+
 import axios from 'axios'
 import { computed, onMounted, ref } from 'vue'
+
+
+
+
+
 
 const mediaform = ref({
   libelle: '',
@@ -10,12 +16,18 @@ const mediaform = ref({
   souscategorie_id: null as number | null,
   owner_id: null as number | null, 
   new_upload_file: null as File | null,
+  m_debut: '' as string,
+  m_fin: '' as string,
 })
 
 const list_cat_media = ref<any[]>([])
 const list_souscat_media = ref<any[]>([])
 const list_users = ref<any[]>([])  
 
+
+
+
+const limitedDuration = ref(false);
 const Catoptions = computed(() =>
   list_cat_media.value.map(cat => ({ text: cat.nom, value: cat.id }))
 )
@@ -35,7 +47,7 @@ const isExistingCategory = computed(() => {
 
 async function refresh_cat() {
   try {
-    const response = await axios.get('http://127.0.0.1:8000/media/cat/list')
+    const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/media/cat/list`)
     list_cat_media.value = response.data
   } catch (error) {
     console.error('Erreur catégories:', error)
@@ -52,7 +64,7 @@ async function refresh_subcat() {
   }
   if (!catId) return;
   try {
-    list_souscat_media.value = await $fetch('http://127.0.0.1:8000/media/subcat/listbycat', {
+    list_souscat_media.value = await $fetch(`${import.meta.env.VITE_API_BASE_URL}/media/subcat/listbycat`, {
       method: 'POST',
       body: { id: catId }
     })
@@ -63,7 +75,7 @@ async function refresh_subcat() {
 
 async function refresh_users() {
   try {
-    const response = await axios.get('http://127.0.0.1:8000/users')
+    const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/users`)
     list_users.value = response.data
   } catch (error) {
     console.error('Erreur utilisateurs:', error)
@@ -82,7 +94,7 @@ async function onCloseCat() {
   
   if (typeof mediaform.value.categorie_id === 'string' && !list_cat_media.value.some(cat => cat.nom === mediaform.value.categorie_id)) {
     try {
-      await $fetch('http://127.0.0.1:8000/media/cat/add', {
+      await $fetch(`${import.meta.env.VITE_API_BASE_URL}/media/cat/add`, {
         method: 'POST',
         body: { nom: mediaform.value.categorie_id }
       })
@@ -119,7 +131,7 @@ async function onCloseSubcat() {
       }
       if (!catId) return;
       
-      await $fetch('http://127.0.0.1:8000/media/subcat/add', {
+      await $fetch(`${import.meta.env.VITE_API_BASE_URL}/media/subcat/add`, {
         method: 'POST',
         body: {
           nom: inputValue,
@@ -144,10 +156,15 @@ const validateForm = () => {
   if (!mediaform.value.categorie_id) errors.push('Catégorie requise.')
   if (isExistingCategory.value && !mediaform.value.souscategorie_id) errors.push('Sous-catégorie requise.')
   if (!mediaform.value.new_upload_file) errors.push('Fichier vidéo requis.')
+
   return errors
 }
 
 const retourapi = ref({ etat: '', message: '' })
+
+
+const toast = (useNuxtApp().$toast as any)
+
 const onSubmit = async () => {
   const errors = validateForm()
   if (errors.length > 0) return
@@ -156,18 +173,43 @@ const onSubmit = async () => {
   if (mediaform.value.new_upload_file) {
     form.append("new_upload_file", mediaform.value.new_upload_file)
   }
+
   
+  const params: Record<string, any> = {
+    libelle: mediaform.value.libelle,
+    description: mediaform.value.description,
+    categorie_id: mediaform.value.categorie_id,
+    souscategorie_id: mediaform.value.souscategorie_id,
+    owner_id: mediaform.value.owner_id,
+  }
+
+ 
+  if (limitedDuration.value) {
+    params.m_debut = mediaform.value.m_debut
+    params.m_fin = mediaform.value.m_fin
+  } else {
+    
+    const todayDate = new Date().toISOString().split('T')[0]
+    params.m_debut = todayDate
+    params.m_fin = '2050-12-31'
+  }
+
+  
+  const queryString = new URLSearchParams(params).toString()
+  const url = `${import.meta.env.VITE_API_BASE_URL}/mediatheque/media/add?${queryString}`
+
   try {
-    const resp = await $fetch(
-      `http://127.0.0.1:8000/mediatheque/media/add?libelle=${mediaform.value.libelle}&description=${mediaform.value.description}&categorie_id=${mediaform.value.categorie_id}&souscategorie_id=${mediaform.value.souscategorie_id}&owner_id=${mediaform.value.owner_id}`,
-      {
-        method: "POST",
-        body: form
-      }
-    )
+    const resp = await $fetch(url, {
+      method: "POST",
+      body: form
+    })
     retourapi.value = resp as { etat: string; message: string }
+    
+      toast.success(retourapi.value.message )
+
   } catch (error) {
     console.error('Erreur soumission:', error)
+    toast.error('Erreur lors de l\'ajout du média')
   }
 }
 
@@ -237,6 +279,29 @@ onMounted(() => {
         </VCol>
 
         <VCol cols="12">
+          <VCheckbox
+            label="Media à durée de vie limitée"
+            v-model="limitedDuration"
+          />
+        </VCol>
+
+                <VCol cols="12" v-if="limitedDuration">
+          <VTextField
+            label="Date de début"
+            type="datetime-local"
+            v-model="mediaform.m_debut"
+          />
+        </VCol>
+
+                <VCol cols="12" v-if="limitedDuration">
+          <VTextField
+            label="Date de fin"
+            type="datetime-local"
+            v-model="mediaform.m_fin"
+          />
+        </VCol>
+
+        <VCol cols="12">
           <VFileInput
             label="Fichier vidéo"
             v-model="mediaform.new_upload_file"
@@ -246,7 +311,7 @@ onMounted(() => {
         </VCol>
 
         <VCol cols="12">
-          <VBtn type="submit" color="primary">
+          <VBtn  type="submit" color="primary">
             Ajouter ce média à la médiathèque
           </VBtn>
         </VCol>

@@ -22,6 +22,7 @@ const authThemeMask = computed(() => {
   return vuetifyTheme.global.name.value === 'light' ? authV1MaskLight : authV1MaskDark;
 });
 
+const toast = (useNuxtApp().$toast as any)
 
 const login = async (email: string, password: string) => {
   try {
@@ -36,7 +37,9 @@ const login = async (email: string, password: string) => {
 
     
     if (!response.ok) {
+      
       const rawResponse = await response.text();
+      console.log(`${import.meta.env.VITE_API_BASE_URL}/login`);
       console.error('[DEBUG] Raw server response:', rawResponse);
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
@@ -47,11 +50,13 @@ const login = async (email: string, password: string) => {
     if (!response.ok) {
       const errorData = await response.json();
       console.error('Error response:', errorData);
+      console.log(`${import.meta.env.VITE_API_BASE_URL}/login`);
       throw new Error(errorData.detail || 'Login failed');
     }
 
     const data = await response.json();
     console.log('API response:', data); 
+    console.log(`${import.meta.env.VITE_API_BASE_URL}/login`);
 
     if (data.access_token) {
       
@@ -76,12 +81,13 @@ const handleLogin = async () => {
 
     const token = await login(email, password);
 
+    toast.success('Login successful');
     
     router.push('/dashboard');
   } catch (error) {
     console.error('Login failed:', error);
     
-    alert('Login failed: ' + (error instanceof Error ? error.message : 'Unknown error'));
+    toast.error(error instanceof Error ? error.message : 'Login failed');
   }
 };
 
@@ -139,8 +145,7 @@ definePageMeta({ layout: 'blank' });
                   label="Remember me"
                 />
 
-                <NuxtLink class="text-primary" to="/forgotpassword">Forgot Password?</NuxtLink>
-                <NuxtLink class="text-primary" to="/reset-password">Forgot Password?</NuxtLink>
+              
 
 
               </div>
@@ -152,23 +157,16 @@ definePageMeta({ layout: 'blank' });
             </VCol>
 
             <!-- create account -->
-            <VCol cols="12" class="text-center text-base">
-              <span>New on our platform?</span>
-              <NuxtLink class="text-primary ms-2" to="/register">
-                Create an account
-              </NuxtLink>
-            </VCol>
+            
 
             <VCol cols="12" class="d-flex align-center">
               <VDivider />
-              <span class="mx-4">or</span>
+             
               <VDivider />
             </VCol>
 
             <!-- auth providers -->
-            <VCol cols="12" class="text-center">
-              <AuthProvider />
-            </VCol>
+          
           </VRow>
         </VForm>
       </VCardText>

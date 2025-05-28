@@ -95,7 +95,7 @@ import { onMounted, ref } from 'vue'
   
   const fetchRecords = async () => {
     try {
-      const resp = await axios.get<Record[]>('http://127.0.0.1:8000/suivimajhelice')
+      const resp = await axios.get<Record[]>(`${import.meta.env.VITE_API_BASE_URL}/suivimajhelice`)
       records.value = resp.data
     } catch (err) {
       console.error('Erreur chargement suivi MAJ hélice :', err)

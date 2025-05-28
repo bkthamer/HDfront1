@@ -12,6 +12,8 @@ const user = ref({
   role: 'User',  
 });
 
+const toast = (useNuxtApp().$toast as any)
+
 const fetchUser = () => {
   const token = localStorage.getItem('authToken');
   if (token) {
@@ -43,12 +45,14 @@ const submitForm = async () => {
     }
     formData.append('email', user.value.email);
     
-    const response = await axios.post('http://127.0.0.1:8000/ajoutdemande', formData, {
+    const response = await axios.post(`${import.meta.env.VITE_API_BASE_URL}/ajoutdemande`, formData, {
       headers: { "Content-Type": "multipart/form-data" }
     })
     console.log('Demande ajoutée :', response.data)
+    toast.success('Demande ajoutée avec succès !')
   } catch (error) {
     console.error("Erreur lors de l'envoi de la demande :", error)
+    toast.error('Erreur lors de l\'ajout de la demande')
   }
 }
 </script>
@@ -57,7 +61,7 @@ const submitForm = async () => {
   <div class="form-container">
     <VForm @submit.prevent="submitForm">
       <VRow>
-        <!-- Champ Sujet -->
+     
         <VCol cols="12">
           <VRow no-gutters>
             <VCol cols="12" md="3">
@@ -74,7 +78,7 @@ const submitForm = async () => {
           </VRow>
         </VCol>
 
-        <!-- Champ Description -->
+       
         <VCol cols="12">
           <VRow no-gutters>
             <VCol cols="12" md="3">
@@ -91,7 +95,7 @@ const submitForm = async () => {
           </VRow>
         </VCol>
 
-        <!-- Champ Image -->
+       
         <VCol cols="12">
           <VRow no-gutters>
             <VCol cols="12" md="3">
@@ -137,7 +141,7 @@ const submitForm = async () => {
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* Exemples d'améliorations globales sur les composants Vuetify */
+
 label {
   font-weight: 600;
   color: #424242;

@@ -90,7 +90,7 @@ import { onMounted, ref } from 'vue'
   
   const fetchTasks = async () => {
     try {
-      const resp = await axios.get<Task[]>('http://127.0.0.1:8000/media/taches/list')
+      const resp = await axios.get<Task[]>(`${import.meta.env.VITE_API_BASE_URL}/media/taches/list`)
       tasks.value = resp.data
     } catch (err) {
       console.error('Erreur chargement des tâches :', err)
