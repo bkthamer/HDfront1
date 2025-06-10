@@ -220,6 +220,10 @@ onMounted(() => {
 </script>
 
 <template>
+    <div class="header">
+   
+    <h2 class="text-3xl font-semibold ml-6 mt-4 mb-6 text-gray-800">Ajout Media</h2>
+  </div>
   <div class="form-container">
     <VForm @submit.prevent="onSubmit">
       <VRow>

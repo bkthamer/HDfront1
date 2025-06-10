@@ -3,7 +3,7 @@ import Mediacard from '@/layouts/components/Mediacard.vue';
 import { computed, onMounted, ref } from 'vue';
 
 
-interface User { email: string; role: string; id_user?: number; site_id?: string; }
+interface User { email: string; role: string; id_user?: number; client_id?: string; }
 interface Media { id: number; description: string; libelle: string; owner_id: number | null; categorie_id: number; souscategorie_id: number | null; ready: boolean; }
 interface Categorie { id: number; nom: string; }
 interface SousCategorie { id: number; nom: string; categorie_id: number; }
@@ -13,7 +13,7 @@ interface Materiel { id: number; materiel_hdref: string; }
 interface PDV { pdv_id: number; pdv_hdref: string; pdv_emplacement: string; site_id: number; site_hdref: string; client_id: number; client_societe: string; }
 
 
-const user = ref<User>({ email: 'Unknown', role: 'User', id_user: undefined, site_id: '0' });
+const user = ref<User>({ email: 'Unknown', role: 'User', id_user: undefined, client_id: '0' });
 const categories = ref<Categorie[]>([]);
 const sousCategories = ref<SousCategorie[]>([]);
 const groupedPlaylists = ref<GroupedPlaylist[]>([]);
@@ -77,6 +77,9 @@ const submitPlanif = async () => {
 
 
 
+
+
+
 function openForAddPlanif(pl: Playlist, type: 'date'|'periodic') {
   choicePlaylist.value               = pl;
   scheduleForm.value.sch_playlist_id = pl.id;
@@ -109,9 +112,9 @@ const fetchUser = async () => {
       const decoded = JSON.parse(atob(payloadBase64));
       user.value.email = decoded.sub || 'Unknown';
       user.value.role = decoded.role || 'User';
-      user.value.site_id = decoded.site_id || '0';
+      user.value.client_id = decoded.client_id || '0';
       console.log('User role:', user.value.role);
-      console.log('User site_id:', user.value.site_id);
+      console.log('User site_id:', user.value.client_id);
       console.log('User email:', user.value.email);
       await fetchUserId();
     } catch (error) {
@@ -135,6 +138,7 @@ const fetchUserId = async () => {
 
 
 async function subscribeAll(pl: Playlist) {
+  togglePDVAssociation(true);
   try {
     const schedules = await $fetch<any[]>(`${import.meta.env.VITE_API_BASE_URL}/playlist/listgrille/${pl.id}`);
     for (const s of schedules) {
@@ -156,6 +160,10 @@ async function subscribeAll(pl: Playlist) {
     console.error(e);
     alert('Échec de l’abonnement');
   }
+}
+
+async function unsubscribeAll() {
+  togglePDVAssociation(false);
 }
 
 
@@ -197,19 +205,45 @@ const fetchSousCategories = async () => {
 
 const fetchMaterielsBySite = async () => {
   try {
-
-    const url =
+    
+    const sitesUrl = 
       user.value.role === 'admin'
-        ? `${import.meta.env.VITE_API_BASE_URL}/pdv/list`
-        : `${import.meta.env.VITE_API_BASE_URL}/pdv/list/bysite/${user.value.site_id}`
+        ? `${import.meta.env.VITE_API_BASE_URL}/sites`
+        : `${import.meta.env.VITE_API_BASE_URL}/site/list/byclient/${user.value.client_id}`;
 
-    const response = await $fetch(url)
-    materiels.value = response as Materiel[]
+    const sitesResponse = await $fetch<any[]>(sitesUrl);
+    console.log('Sites response:', sitesResponse);
+
+    
+    const siteIds = [...new Set(
+      sitesResponse.map(site => site.id).filter(Boolean)
+    )];
+    console.log('IDs de site:', siteIds);
+    
+
+    const pdvRequests = siteIds.map(id => 
+      $fetch(`${import.meta.env.VITE_API_BASE_URL}/pdv/list/bysite/${id}`)
+        .then(response => {
+          console.log(`PDV response for site ${id}:`, response);
+          return Array.isArray(response) ? response : [];
+        })
+        .catch(error => {
+          console.error(`Erreur PDV pour site ${id}:`, error);
+          return [];
+        })
+    );
+
+    const pdvArrays = await Promise.all(pdvRequests);
+    const allPdvs = pdvArrays.flat();
+    
+   
+    materiels.value = allPdvs;
+    console.log('PDVs récupérés:', materiels.value);
+
   } catch (error) {
-    console.error('Erreur récupération matériels:', error)
+    console.error('Erreur récupération sites:', error);
   }
-}
-
+};
 
 const addPDVToPlaylist = async (playlistId: number, pdvHdref: string) => {
   const pdv = materiels.value.find(m => m.materiel_hdref === pdvHdref);
@@ -498,7 +532,7 @@ onMounted(async () => {
 
 <template>
   <div class="header">
-    <UIcon name="i-simple-icons-concourse" class="text-green-500 w-12 h-12 mt-5" />
+   
     <h2 class="text-3xl font-semibold ml-6 mt-4 mb-6 text-gray-800">Playlists</h2>
   </div>
 
@@ -527,14 +561,14 @@ onMounted(async () => {
             @click="deletePlaylist(group.playlist.id)"
             class="btn-delete"
           >
-            <UIcon name="i-heroicons-trash" class="mr-1" /> Supprimer
+             Supprimer
           </VBtn>
           <VBtn
             v-if="user.role === 'admin'"
             @click="openPDVPopup(group.playlist)"
             class="btn-pdv"
           >
-            <UIcon name="i-heroicons-information-circle" class="mr-1" /> PDV
+            PDV
           </VBtn>
 
 
@@ -546,7 +580,7 @@ onMounted(async () => {
   class="ml-2"
   @click="openForAddPlanif(group.playlist, 'date')"
 >
-  <UIcon name="i-heroicons-calendar-days" class="mr-1" />
+ 
   Planif Date
 </VBtn>
 <VBtn
@@ -556,7 +590,7 @@ onMounted(async () => {
   class="ml-2"
   @click="openForAddPlanif(group.playlist, 'periodic')"
 >
-  <UIcon name="i-heroicons-clock" class="mr-1" />
+ 
   Planif Périodique
 </VBtn>
         </div>
@@ -564,21 +598,21 @@ onMounted(async () => {
 
       <div class="media-galerie">
         <div v-for="m in group.medias" :key="m.id" class="media-item">
-          <Mediacard :descrip="m.description" :libe="m.libelle" :ready="m.ready" />
+          <Mediacard :descrip="m.description" :libe="m.libelle"  />
           <button
           v-if="user.role === 'admin' || (user.role === 'user' && group.playlist?.proprietaire === user.id_user)"
 
             @click="removeMediaFromPlaylist(group.playlist.id, m.id)"
             class="btn-playlist"
           >
-            <UIcon name="i-heroicons-trash" class="mr-1" /> Suppr.
+            Suppr.
           </button>
         </div>
       </div>
     </div>
 
     <div v-if="!filterGroupedPlaylists.length" class="empty-state">
-      <UIcon name="i-heroicons-musical-note" class="text-4xl text-gray-400" />
+      
       <p class="empty-text">Aucune playlist disponible</p>
     </div>
   </div>
@@ -592,15 +626,12 @@ onMounted(async () => {
 >
   <VCard class="rounded-lg elevation-5">
     <VCardTitle class="d-flex align-center pa-6 pb-4 text-h5 font-weight-bold">
-      <UIcon 
-        name="i-heroicons-musical-note" 
-        class="mr-3 text-primary" 
-        size="28"
-      />
+      
       <span class="text-gradient">{{ actionPlaylist?.libelle }}</span>
     </VCardTitle>
 
         <VCheckbox
+        v-if ="user.role === 'admin' || (user.role === 'user' && actionPlaylist?.proprietaire === user.id_user)"
   :model-value="isPDVAssociated"
   label="Associer / Désassocier ce PDV"
   color="primary"
@@ -609,7 +640,7 @@ onMounted(async () => {
 
     <VCardText class="px-6 pt-0 pb-4">
       <div class="d-flex align-center pa-4 rounded-lg bg-grey-lighten-4">
-        <UIcon name="i-heroicons-tv" class="mr-3 text-indigo" size="22" />
+       
         <span class="text-body-1 font-weight-medium">{{ actionPDVHdref }}</span>
       </div>
     </VCardText>
@@ -625,7 +656,7 @@ onMounted(async () => {
         class="px-6 font-weight-bold"
         @click="confirmOn"
       >
-        <UIcon name="i-heroicons-play" class="mr-2" />
+       
         Lancer
       </VBtn>
       
@@ -637,7 +668,7 @@ onMounted(async () => {
         class="px-6 font-weight-bold"
         @click="confirmOff"
       >
-        <UIcon name="i-heroicons-stop" class="mr-2" />
+       
         Arrêter
       </VBtn>
       
@@ -649,7 +680,7 @@ onMounted(async () => {
         class="font-weight-bold"
         @click="openDateSchedule(actionPlaylist!)"
       >
-        <UIcon name="i-heroicons-calendar" class="mr-2" />
+        
         Planification
       </VBtn>
       
@@ -661,7 +692,7 @@ onMounted(async () => {
         class="font-weight-bold"
         @click="openPeriodicSchedule(actionPlaylist!)"
       >
-        <UIcon name="i-heroicons-clock" class="mr-2" />
+        
         Périodique
       </VBtn>
 
@@ -674,9 +705,23 @@ onMounted(async () => {
    size="large"
    @click="subscribeAll(actionPlaylist)"
  >
-   <UIcon name="i-heroicons-clock" class="mr-2" />
+  
    s'abonner
  </VBtn>
+
+  <VBtn
+   v-if="user.role === 'user' 
+         && actionPlaylist 
+         && actionPlaylist.proprietaire !== user.id_user"
+   color="secondary"
+   variant="text"
+   size="large"
+   @click="unsubscribeAll"
+ >
+   
+   desabonner
+ </VBtn>
+ 
 
       
       <VBtn
@@ -687,7 +732,7 @@ onMounted(async () => {
         class="font-weight-bold"
         @click="fetchExistingSchedules(actionPlaylist!.id)"
       >
-        <UIcon name="i-heroicons-list-bullet" class="mr-2" />
+       
         Voir planifs
       </VBtn>
     </VCardActions>
@@ -836,7 +881,7 @@ onMounted(async () => {
                   <VBtn 
                   
                   color="red" small @click="removePDVFromPlaylist(pdv.pdv_id)" title="Supprimer PDV">
-                    <UIcon name="i-heroicons-trash" class="mr-1" />
+                    
                     Supprimer
                   </VBtn>
                 </td>
@@ -845,7 +890,7 @@ onMounted(async () => {
           </table>
         </div>
         <div v-else class="no-pdv">
-          <UIcon name="i-heroicons-exclamation" class="mr-2" />
+         
           Aucun point de diffusion associé.
         </div>
       </VCardText>
@@ -866,11 +911,12 @@ onMounted(async () => {
 >
   <VCard class="rounded-lg">
     <VCardTitle class="d-flex align-center bg-blue-darken-2 text-white pa-4">
-      <UIcon name="i-heroicons-calendar-days" class="mr-2" size="24" />
+      
       Planifications existantes
       <VSpacer />
       <VBtn icon @click="showExistingSchedulesModal = false" variant="text" color="white">
-        <UIcon name="i-heroicons-x-mark" size="24" />
+       
+
       </VBtn>
     </VCardTitle>
 
@@ -911,7 +957,7 @@ onMounted(async () => {
                 size="small"
                  @click="deleteSchedule(schedule.id)"
               >
-                <UIcon name="i-heroicons-trash" class="mr-1" />
+                
                 Supprimer
               </VBtn>
             </td>

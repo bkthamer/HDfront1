@@ -1,5 +1,4 @@
 <script lang="ts" setup>
-import { useLazyAsyncData } from '#imports';
 import Mediacard from '@/layouts/components/Mediacard.vue';
 import { onMounted, ref } from 'vue';
 
@@ -84,17 +83,15 @@ const fetchUserId = async () => {
 
 const fetchMedias = async () => {
   try {
-    const { data } = await useLazyAsyncData<Media[]>('medias', () =>
-      $fetch(`${import.meta.env.VITE_API_BASE_URL}/mediatheque/list`)
-    );
-    if (data.value) {
-      medias.value = data.value;
-      filterMedias();
-    }
+    
+    const data = await $fetch<Media[]>(`${import.meta.env.VITE_API_BASE_URL}/mediatheque/list`)
+    medias.value = data
+    filterMedias()
   } catch (error) {
-    console.error('Erreur lors de la récupération des médias:', error);
+    console.error('Erreur lors de la récupération des médias :', error)
   }
-};
+}
+
 
 const fetchCategories = async () => {
   try {
@@ -193,7 +190,7 @@ onMounted(async () => {
 
 <template>
   <div class="header">
-    <UIcon name="i-simple-icons-concourse" class="text-green-500 w-12 h-12 mt-5" />
+   
     <h2 class="text-3xl font-semibold ml-6 mt-4 mb-6 text-gray-800">Médiathèque</h2>
   </div>
 
@@ -257,7 +254,7 @@ onMounted(async () => {
           </VBtn>
         </div>
         <div v-else class="no-playlist">
-          <UIcon name="i-heroicons-information-circle" class="text-xl mr-2" />
+          
           Créez d'abord une playlist
         </div>
       </VCardText>

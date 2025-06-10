@@ -46,7 +46,7 @@ export default defineNuxtPlugin((nuxtApp) => {
         next('/dashboard') 
 
       }
-      else if (to.path === '/telecommande' && user.value.role === 'user') {
+      else if (to.path === '/t' && user.value.role === 'user') {
         next('/dashboard')
       }
       else {

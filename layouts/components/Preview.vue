@@ -15,7 +15,7 @@ const videoSrc = ref('')
 
 onMounted(() => {
   const config = useRuntimeConfig()
-  videoSrc.value = `http://127.0.0.1:8000/mediatheque/video/${props.libel}`
+  videoSrc.value = `${import.meta.env.VITE_API_BASE_URL}/mediatheque/video/${props.libel}`
   console.log("URL de la vidéo :", videoSrc.value)
 })
 </script>

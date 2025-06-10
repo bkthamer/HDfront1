@@ -1,8 +1,8 @@
 <script lang="ts" setup>
-import { useRoute } from 'vue-router'
 import AccountSettingsAccount from '@/views/pages/account-settings/AccountSettingsAccount.vue'
 import AccountSettingsNotification from '@/views/pages/account-settings/AccountSettingsNotification.vue'
 import AccountSettingsSecurity from '@/views/pages/account-settings/AccountSettingsSecurity.vue'
+import { useRoute } from 'vue-router'
 
 const route = useRoute()
 
@@ -10,13 +10,15 @@ const activeTab = ref(route.params.tab)
 
 // tabs
 const tabs = [
-  { title: 'Account', icon: 'ri-group-line', tab: 'account' },
-  { title: 'Security', icon: 'ri-lock-line', tab: 'security' },
-  { title: 'Notifications', icon: 'ri-notification-3-line', tab: 'notification' },
+
 ]
 </script>
 
 <template>
+    <div class="header">
+   
+    <h2 class="text-3xl font-semibold ml-6 mt-4 mb-6 text-gray-800">Gerer Compte</h2>
+  </div>
   <div>
     <VTabs
       v-model="activeTab"

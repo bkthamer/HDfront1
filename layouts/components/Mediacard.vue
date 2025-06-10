@@ -13,7 +13,7 @@ const showPreview = ref(false)
 
 onMounted(() => {
   const config = useRuntimeConfig()
-  vignetteSrc.value = `http://127.0.0.1:8000/mediatheque/vignette/${props.libe}`
+  vignetteSrc.value = `${import.meta.env.VITE_API_BASE_URL}/mediatheque/vignette/${props.libe}`
 })
 
 function openVisualiser() {
@@ -62,13 +62,10 @@ function openToplaylist() {
 
   <!-- Modal de prévisualisation -->
   <v-dialog v-model="showPreview" max-width="600px">
-    <v-card class="rounded-lg">
-      <v-card-title class="text-h6">Prévisualisation</v-card-title>
+   
       <Preview :libel="libe" />
-      <v-card-actions>
-        <v-btn color="red" variant="text" @click="showPreview = false">Fermer</v-btn>
-      </v-card-actions>
-    </v-card>
+
+
   </v-dialog>
 </template>
 

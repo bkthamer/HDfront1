@@ -2,14 +2,14 @@
 import { BarController, BarElement, CategoryScale, Chart, Legend, LinearScale, Tooltip } from 'chart.js'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
-
+// Enregistrement des composants Chart.js nécessaires
 Chart.register(BarController, BarElement, CategoryScale, LinearScale, Tooltip, Legend)
 
 const chartRef = ref(null)
 let chartInstance = null
 const demandesData = ref([])
 
-
+// Fonction de récupération des données depuis l'API
 const fetchDemandes = async () => {
   try {
     const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}/demandes`)
@@ -21,7 +21,7 @@ const fetchDemandes = async () => {
   }
 }
 
-
+// Agrégation des données : compte le nombre de demandes par email
 const aggregateData = () => {
   const counts = {}
   demandesData.value.forEach(item => {
@@ -33,7 +33,7 @@ const aggregateData = () => {
   return { labels, countsArray }
 }
 
-
+// Création du graphique à partir des données agrégées
 const createChart = () => {
   if (chartInstance) {
     chartInstance.destroy()

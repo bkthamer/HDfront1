@@ -31,7 +31,7 @@ const fetchDemandes = async () => {
     const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/demandes`)
     const data = await response.json()
 
-   
+    
     const monthlyCounts = Array(12).fill(0)
 
     data.forEach((demande: any) => {
@@ -45,16 +45,16 @@ const fetchDemandes = async () => {
     }
 
     if (chartRef.value) {
-
+  
       const ctx = chartRef.value.getContext('2d')
       if (!ctx) return
 
-     
+      
       const gradient = ctx.createLinearGradient(0, 0, 0, 400)
       gradient.addColorStop(0, 'rgba(75, 192, 192, 0.7)')
       gradient.addColorStop(1, 'rgba(75, 192, 192, 0.1)')
 
-      // Création du bar chart
+
       chartInstance = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -64,7 +64,7 @@ const fetchDemandes = async () => {
           ],
           datasets: [
             {
-              label: 'Number of Demandes',
+              label: 'nombre de demandes',
               data: monthlyCounts,
               backgroundColor: gradient,   
               borderColor: 'rgb(75, 192, 192)',
@@ -78,7 +78,7 @@ const fetchDemandes = async () => {
           plugins: {
             title: {
               display: true,
-              text: 'Monthly Demandes', // Titre du graphique
+              text: 'nombre totale des demandes medias des utilisateurs par mois', 
               font: {
                 size: 18,
                 weight: 'bold'
@@ -155,14 +155,14 @@ onMounted(() => {
   color: #333;
 }
 
-/* Le wrapper pour gérer la taille du canvas */
+
 .chart-wrapper {
   width: 100%;
-  height: 400px; /* Fixe une hauteur pour l'effet maintainAspectRatio: false */
+  height: 400px; 
   position: relative;
 }
 
-/* Ajuste le canvas pour qu'il prenne toute la place disponible */
+
 .chart-wrapper canvas {
   width: 100% !important;
   height: 100% !important;

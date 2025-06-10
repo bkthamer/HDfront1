@@ -1,4 +1,8 @@
 <template>
+    <div class="header">
+   
+    <h2 class="text-3xl font-semibold ml-6 mt-4 mb-6 text-gray-800">Suivi tache playlist</h2>
+  </div>
   <VCard class="data-card">
     <VCardTitle>
       <span class="text-h6">Grilles de diffusion</span>

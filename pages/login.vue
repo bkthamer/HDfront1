@@ -99,7 +99,12 @@ definePageMeta({ layout: 'blank' });
     <VCard class="auth-card pa-4 pt-7" max-width="448">
       <VCardItem class="justify-center">
         <NuxtLink to="/" class="d-flex align-center gap-3">
-          <div class="d-flex" v-html="logo" style="width: 80px; height: 80px" />
+         <div
+ 
+  style="width: 70px; height: 70px; border-radius: 30%; overflow: hidden;"
+>
+  <div v-html="logo"></div>
+</div>
           <h2 class="font-weight-medium text-2xl text-uppercase">
             Helice Diffusion
           </h2>

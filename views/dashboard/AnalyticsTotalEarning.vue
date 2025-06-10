@@ -44,16 +44,17 @@ const updateChart = () => {
     chartInstance.destroy();
   }
 
-
+  // Agréger les médias par nom de catégorie (champ "categorie_nom")
   const counts: Record<string, number> = {};
   mediaData.value.forEach(media => {
     const cat = media.categorie_nom || 'Non défini';
     counts[cat] = (counts[cat] || 0) + 1;
   });
 
-  
+  // Préparer les labels et les données
+  // On trie par ordre alphabétique pour un affichage cohérent
   const sortedCategories = Object.keys(counts).sort();
-  const labels = sortedCategories; 
+  const labels = sortedCategories; // Utilise directement le nom de la catégorie
   const datasetData = sortedCategories.map(cat => counts[cat]);
 
   if (chartRef.value) {

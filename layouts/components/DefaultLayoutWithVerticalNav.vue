@@ -5,7 +5,6 @@ import VerticalNavLayout from '@layouts/components/VerticalNavLayout.vue'
 
 // Components
 import Footer from '@/layouts/components/Footer.vue'
-import NavbarThemeSwitcher from '@/layouts/components/NavbarThemeSwitcher.vue'
 import UserProfile from '@/layouts/components/UserProfile.vue'
 </script>
 
@@ -23,36 +22,15 @@ import UserProfile from '@/layouts/components/UserProfile.vue'
         </IconBtn>
 
         <!-- 👉 Search -->
-        <div
-          class="d-flex align-center cursor-pointer"
-          style="user-select: none;"
-        >
-          <!-- 👉 Search Trigger button -->
-          <IconBtn>
-            <VIcon icon="ri-search-line" />
-          </IconBtn>
 
-          <span class="d-none d-md-flex align-center text-disabled">
-            <span class="me-3">Search</span>
-            <span class="meta-key">&#8984;K</span>
-          </span>
-        </div>
 
         <VSpacer />
 
-        <IconBtn
-          href="https://github.com/themeselection/materio-vuetify-nuxtjs-admin-template-free"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <VIcon icon="ri-github-fill" />
-        </IconBtn>
 
-        <IconBtn>
-          <VIcon icon="ri-notification-line" />
-        </IconBtn>
 
-        <NavbarThemeSwitcher class="me-2" />
+
+
+       
 
         <UserProfile />
       </div>
@@ -64,11 +42,12 @@ import UserProfile from '@/layouts/components/UserProfile.vue'
         class="app-logo app-title-wrapper"
       >
         <!-- eslint-disable vue/no-v-html -->
-        <div
-          class="d-flex"
-          v-html="logo"
-          style="width: 80px; height: 80px"
-        />
+<div
+ 
+  style="width: 45px; height: 45px; border-radius: 30%; overflow: hidden;"
+>
+  <div v-html="logo"></div>
+</div>
         <!-- eslint-enable -->
 
         <h1 class="font-weight-medium leading-normal text-xl text-uppercase">

@@ -80,13 +80,7 @@ onMounted(() => {
       }"
 />
 
-<VerticalNavLink
-      :item="{
-        title: 'Gestion playlist',
-        icon:'ri-list-settings-line',
-        to: '/gestionplaylist',
-      }"
-/>
+
 
 <VerticalNavLink
       :item="{
@@ -231,78 +225,129 @@ onMounted(() => {
   />
 
 
+    <VerticalNavSectionTitle
+    v-if="user.role === 'admin'"
+    :item="{
+      heading: 'Gestion Client',
+    }"
+  />
 
 
+    <VerticalNavLink
+  v-if="user.role === 'admin'"
+    :item="{
+      title: 'Ajouter client',
+      icon: 'ri-building-line',
+      to: '/ajoutclient',
+    }"
+  />
+
+
+    <VerticalNavLink
+  v-if="user.role === 'admin'"
+    :item="{
+      title: 'lister clients',
+      icon: 'ri-table-line',
+      to: '/listeclient',
+    }"
+  />
+
+
+    <VerticalNavSectionTitle
+    v-if="user.role === 'admin'"
+    :item="{
+      heading: 'Gestion sites',
+    }"
+  />
+
+      <VerticalNavLink
+  v-if="user.role === 'admin'"
+    :item="{
+      title: 'ajouter site',
+      icon: 'ri-base-station-line',
+      to: '/ajoutsite',
+    }"
+  />
 
 
   <VerticalNavSectionTitle
+  v-if="user.role === 'admin'"
     :item="{
-      heading: 'User Interface',
+      heading: 'Les points de visionnage',
     }"
   />
+
+        <VerticalNavLink
+  v-if="user.role === 'admin'"
+    :item="{
+      title: 'point de visonage',
+      icon: 'ri-slideshow-2-line',
+      to: '/ajoutpdv',
+    }"
+  />
+
+          <VerticalNavLink
+  v-if="user.role === 'admin'"
+    :item="{
+      title: 'migration pdv',
+      icon: 'ri-slideshow-2-fill',
+      to: '/migrationpdv',
+    }"
+  />
+
+
+
+    <VerticalNavSectionTitle
+    v-if="user.role === 'admin'"
+    :item="{
+      heading: 'Gestion matériel',
+    }"
+  />
+
+          <VerticalNavLink
+
+            v-if="user.role === 'admin'"
+    :item="{
+      title: 'ajouter matériel',
+      icon: 'ri-device-line',
+      to: '/ajoutmateriel',
+    }"
+  />
+
+
   <VerticalNavLink
+
+  v-if="user.role === 'admin'"
     :item="{
-      title: 'Typography',
-      icon: 'ri-text',
-      to: '/typography',
+      title: 'gestion routeurs',
+      icon: 'ri-router-line',
+      to: '/pagerouteurs',
     }"
   />
-  <VerticalNavLink
+
+
+            <VerticalNavLink
+  v-if="user.role === 'admin'"
     :item="{
-      title: 'Icons',
-      icon: 'ri-remixicon-line',
-      to: '/icons',
+      title: 'gestion helices',
+      icon: 'ri-tv-2-line',
+      to: '/pagehelice',
     }"
   />
-  <VerticalNavLink
-    :item="{
-      title: 'Cards',
-      icon: 'ri-bar-chart-box-line',
-      to: '/cards',
-    }"
-  />
+
+
+
+
+
+
 
   
-  <VerticalNavSectionTitle
-    :item="{
-      heading: 'Forms & Tables',
-    }"
-  />
-  <VerticalNavLink
-    :item="{
-      title: 'Form Layouts',
-      icon: 'ri-layout-4-line',
-      to: '/form-layouts',
-    }"
-  />
-  <VerticalNavLink
-    :item="{
-      title: 'Tables',
-      icon: 'ri-table-alt-line',
-      to: '/tables',
-    }"
-  />
+
+
+
 
   
-  <VerticalNavSectionTitle
-    :item="{
-      heading: 'Others',
-    }"
-  />
-  <VerticalNavLink
-    :item="{
-      title: 'Documentation',
-      icon: 'ri-article-line',
-      href: 'https://demos.themeselection.com/materio-vuetify-vuejs-admin-template/documentation/',
-      target: '_blank',
-    }"
-  />
-  <VerticalNavLink
-    :item="{
-      title: 'Raise Support',
-      href: 'https://github.com/themeselection/materio-vuetify-nuxtjs-admin-template-free/issues',
-      icon: 'ri-lifebuoy-line',
-      target: '_blank',
-    }"
-  />
+
+
+
 </template>

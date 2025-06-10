@@ -10,6 +10,7 @@ import avatar8 from '@images/avatars/avatar-8.png'
 import axios from 'axios'
 import { onMounted, ref } from 'vue'
 
+
 const headers = [
   { title: 'User', key: 'username' },
   { title: 'Email', key: 'email' },
@@ -50,7 +51,7 @@ const fetchUsers = async () => {
 
 const fetchSites = async () => {
   try {
-    const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/sites`)
+    const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/client/list`)
     sites.value = response.data
   } catch (error) {
     console.error('Error fetching sites:', error)
@@ -102,9 +103,9 @@ const toast = (useNuxtApp().$toast as any)
 
 const assignSite = async (siteId: number) => {
   try {
-    await axios.put(`${import.meta.env.VITE_API_BASE_URL}/admin/assign_site`, {
+    await axios.put(`${import.meta.env.VITE_API_BASE_URL}/admin/assign_client`, {
       email: email.value,
-      site_id: siteId,
+      client_id: siteId,
     })
     console.log(`Site ${siteId} assigned to user ${email.value}`)
     toast.success(`Site ${siteId} affecté à l'utilisateur ${email.value}`)
@@ -121,6 +122,10 @@ onMounted(() => {
 </script>
 
 <template>
+    <div class="header">
+   
+    <h2 class="text-3xl font-semibold ml-6 mt-4 mb-6 text-gray-800">Liste des utilisateurs</h2>
+  </div>
   <VCard>
     <VDataTable
   :headers="headers"
@@ -150,7 +155,7 @@ onMounted(() => {
         <VChip :color="resolveUserStatusVariant(item.status)" size="small" class="text-capitalize">{{ item.status }}</VChip>
       </template>
       <template #item.actions="{ item }">
-        <VBtn v-if="item.role !== 'admin'" color="primary" @click="openPopup(item.id_user, item.email)">Voir Sites</VBtn>
+        <VBtn v-if="item.role !== 'admin'" color="primary" @click="openPopup(item.id_user, item.email)">Voir Clients</VBtn>
       </template>
       <template #bottom />
     </VDataTable>
@@ -158,7 +163,7 @@ onMounted(() => {
 
   <VDialog v-model="showDialog" max-width="500px" transition="dialog-transition">
     <VCard>
-      <VCardTitle class="text-h6">Sites de l'utilisateur</VCardTitle>
+      <VCardTitle class="text-h6">les clients </VCardTitle>
       <VCardText>
         <ul v-if="selectedSites.length > 0">
           <li v-for="site in selectedSites" :key="site.id" class="site-item">
@@ -168,7 +173,7 @@ onMounted(() => {
               @click="assignSite(site.id)"
               elevation="2"
             >
-              Affecter {{ site.nomsite }}
+              Affecter {{ site.nomcontact }}
             </VBtn>
           </li>
         </ul>

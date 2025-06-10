@@ -58,6 +58,10 @@ const submitForm = async () => {
 </script>
 
 <template>
+    <div class="header">
+   
+    <h2 class="text-3xl font-semibold ml-6 mt-4 mb-6 text-gray-800">Faire demande media</h2>
+  </div>
   <div class="form-container">
     <VForm @submit.prevent="submitForm">
       <VRow>
@@ -141,7 +145,7 @@ const submitForm = async () => {
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-
+/* Exemples d'améliorations globales sur les composants Vuetify */
 label {
   font-weight: 600;
   color: #424242;

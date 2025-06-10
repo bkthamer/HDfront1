@@ -91,7 +91,7 @@ const resetForm = () => {
 <template>
   <VRow>
     <VCol cols="12">
-      <VCard title="Account Details">
+      <VCard title="Changer mot de passe">
         <VCardText class="d-flex">
           <!-- 👉 Avatar -->
           <VAvatar
@@ -100,36 +100,7 @@ const resetForm = () => {
             class="me-6"
           />
 
-          <!-- 👉 Upload Photo -->
-          <form class="d-flex flex-column justify-center gap-5">
-            <div class="d-flex flex-wrap gap-2">
-              <VBtn color="primary">
-                <VIcon icon="ri-upload-cloud-line" class="d-sm-none" />
-                <span class="d-none d-sm-block">Upload new photo</span>
-              </VBtn>
 
-              <input
-                ref="refInputEl"
-                type="file"
-                name="file"
-                accept=".jpeg,.png,.jpg,GIF"
-                hidden
-              />
-
-              <VBtn
-                type="reset"
-                color="error"
-                variant="outlined"
-              >
-                <span class="d-none d-sm-block">Reset</span>
-                <VIcon icon="ri-refresh-line" class="d-sm-none" />
-              </VBtn>
-            </div>
-
-            <p class="text-body-1 mb-0">
-              Allowed JPG, GIF or PNG. Max size of 800K
-            </p>
-          </form>
         </VCardText>
 
         <VDivider />
@@ -183,26 +154,7 @@ const resetForm = () => {
 
     <VCol cols="12">
       <!-- 👉 Deactivate Account -->
-      <VCard title="Deactivate Account">
-        <VCardText>
-          <div>
-            <VCheckbox
-              :id="useId()"
-              v-model="isAccountDeactivated"
-              label="I confirm my account deactivation"
-            />
-          </div>
 
-          <VBtn
-            :disabled="!isAccountDeactivated"
-            color="error"
-            class="mt-3"
-            @click="deactivateAccount"
-          >
-            Deactivate Account
-          </VBtn>
-        </VCardText>
-      </VCard>
     </VCol>
   </VRow>
 </template>

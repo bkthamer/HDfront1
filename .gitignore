@@ -18,10 +18,7 @@ logs
 .fleet
 .idea
 
-# Local env files
-#.env
-#.env.*
-#!.env.example
+
 
 # 👉 Custom Git ignores
 
@@ -45,6 +42,4 @@ plugins/iconify/icons.css
 # Ignore MSW script
 public/mockServiceWorker.js
 
-# Env files
-#.env*
-#!.env.example
+

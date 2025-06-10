@@ -22,16 +22,43 @@
 
     <transition name="slide-fade" appear>
       <section class="helice-section">
+
+      <div class="select-container">
+<v-select
+  v-model="selectedClient"
+  :items="clients"
+
+  item-title="societe"
+  item-value="id"
+  placeholder="Sélectionner un client"
+  outlined
+/>
+    </div>
+
         <div class="select-container">
-          <v-select
-            v-model="selectedHelice"
-            :items="matOptions"
-            item-text="hdref"
-            item-value="hdref"
-            placeholder="Sélectionner une hélice"
-            outlined
-          />
-        </div>
+<v-select
+  v-model="selectedSite"
+  :items="sites"
+  item-title="nomsite"
+  item-value="id"
+  :disabled="!selectedClient"
+  placeholder="Sélectionner un site"
+  outlined
+/>
+    </div>
+
+
+    <div class="select-container">
+<v-select
+  v-model="selectedHelice"
+  :items="pdvs"
+  :disabled="!selectedSite"
+  placeholder="Sélectionner une hélice"
+  outlined
+/>
+    </div>
+
+
         <div class="actions-container">
           <div class="debug-btn">
             <VBtn @click="handleButtonClick" color="blue">Debug Console</VBtn>
@@ -188,11 +215,11 @@ interface Media {
 interface User {
   email: string;
   role: string;
-  site_id: string;
+  client_id: string;
   id_user?: number;
 }
 
-const user = ref<User>({ email: 'Unknown', role: 'User', site_id: '0', id_user: undefined })
+const user = ref<User>({ email: 'Unknown', role: 'User', client_id: '0', id_user: undefined })
 const materiels = ref<Materiel[]>([])
 const selectedHelice = ref<string | null>(null)
 const selectedMedia = ref<Media | null>(null)
@@ -227,17 +254,15 @@ const { data: heliceop_list } = await useLazyAsyncData('heliceop_list', () =>
 
 const fetchMedias = async () => {
   try {
-    const { data } = await useLazyAsyncData<Media[]>('medias', () =>
-      $fetch(`${import.meta.env.VITE_API_BASE_URL}/mediatheque/list`)
-    )
-    if (data.value) {
-      medias.value = data.value
-      filterMedias()
-    }
+    
+    const data = await $fetch<Media[]>(`${import.meta.env.VITE_API_BASE_URL}/mediatheque/list`)
+    medias.value = data
+    filterMedias()
   } catch (error) {
-    console.error('Erreur lors de la récupération des médias:', error)
+    console.error('Erreur lors de la récupération des médias :', error)
   }
 }
+
 
 const filterMedias = () => {
   if (user.value.role === 'admin') {
@@ -257,7 +282,7 @@ const fetchUser = async () => {
       const decodedPayload = JSON.parse(atob(payloadBase64))
       user.value.email = decodedPayload.sub || 'Unknown'
       user.value.role = decodedPayload.role || 'User'
-      user.value.site_id = decodedPayload.site_id || '0'
+      user.value.client_id = decodedPayload.client_id || '0'
       await fetchUserId()
     } catch (error) {
       console.error('Erreur lors du décodage du token:', error)
@@ -279,18 +304,120 @@ const fetchUserId = async () => {
 
 const fetchMaterielsBySite = async () => {
   try {
-
-    const url =
+    
+    const sitesUrl = 
       user.value.role === 'admin'
-        ? `${import.meta.env.VITE_API_BASE_URL}/pdv/list`
-        : `${import.meta.env.VITE_API_BASE_URL}/pdv/list/bysite/${user.value.site_id}`
+        ? `${import.meta.env.VITE_API_BASE_URL}/sites`
+        : `${import.meta.env.VITE_API_BASE_URL}/site/list/byclient/${user.value.client_id}`;
 
-    const response = await $fetch(url)
-    materiels.value = response as Materiel[]
+    const sitesResponse = await $fetch<any[]>(sitesUrl);
+    console.log('Sites response:', sitesResponse);
+
+    
+    const siteIds = [...new Set(
+      sitesResponse.map(site => site.id).filter(Boolean)
+    )];
+    console.log('IDs de site:', siteIds);
+    
+
+    const pdvRequests = siteIds.map(id => 
+      $fetch(`${import.meta.env.VITE_API_BASE_URL}/pdv/list/bysite/${id}`)
+        .then(response => {
+          console.log(`PDV response for site ${id}:`, response);
+          return Array.isArray(response) ? response : [];
+        })
+        .catch(error => {
+          console.error(`Erreur PDV pour site ${id}:`, error);
+          return [];
+        })
+    );
+
+    const pdvArrays = await Promise.all(pdvRequests);
+    const allPdvs = pdvArrays.flat();
+    
+   
+    materiels.value = allPdvs;
+    console.log('PDVs récupérés:', materiels.value);
+
   } catch (error) {
-    console.error('Erreur récupération matériels:', error)
+    console.error('Erreur récupération sites:', error);
+  }
+};
+
+
+
+
+
+
+const selectedClient = ref<any>(null)
+const selectedSite = ref<any>(null)
+const clients = ref<any[]>([])
+const sites = ref<any[]>([])
+const pdvs = ref<any[]>([])
+
+
+
+
+
+interface Client {
+  id: string;
+  societe: string;
+}
+
+interface Site {
+  id: number;
+  nomsite: string;
+}
+
+const fetchClients = async () => {
+  try {
+    const response = await $fetch<Client[]>(`${import.meta.env.VITE_API_BASE_URL}/client/list`)
+    clients.value = response
+  } catch (error) {
+    console.error('Erreur récupération clients:', error)
   }
 }
+
+
+const fetchSitesByClient = async () => {
+  if (!selectedClient.value) return
+  try {
+     console.log(selectedClient.value)
+    const response = await $fetch<Site[]>(`${import.meta.env.VITE_API_BASE_URL}/site/list/byclient/${selectedClient.value}`)
+    
+    sites.value = response 
+  } catch (error) {
+    console.error('Erreur récupération sites:', error)
+  }
+}
+
+
+interface Materiel { id: number; materiel_hdref: string; }
+
+const fetchHelicesBySite = async () => {
+  if (!selectedSite.value) return
+  try {
+    const response = await $fetch<Materiel[]>(`${import.meta.env.VITE_API_BASE_URL}/pdv/list/bysite/${selectedSite.value}`)
+    pdvs.value = response.map(p => p.materiel_hdref)
+    
+  } catch (error) {
+    console.error('Erreur récupération hélices:', error)
+  }
+}
+
+
+
+watch(selectedClient, () => {
+  fetchSitesByClient()
+})
+
+watch(selectedSite, () => {
+  fetchHelicesBySite()
+})
+
+
+
+
 
 const checkMaterielStatus = async () => {
   if (!selectedHelice.value) return
@@ -418,7 +545,7 @@ watch(selectedHelice, (newVal) => {
 
 onMounted(async () => {
   await fetchUser()
-  await fetchMaterielsBySite()
+  await fetchClients()
   await fetchMedias()
 })
 

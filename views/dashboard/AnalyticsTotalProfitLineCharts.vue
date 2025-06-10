@@ -12,7 +12,7 @@ import {
 } from 'chart.js';
 import { onMounted, ref } from 'vue';
 
-// Enregistrer les composants nécessaires pour un line chart
+
 Chart.register(
   LineController,
   LineElement,
@@ -30,7 +30,7 @@ const mediaData = ref<any[]>([]);
 
 const fetchMedia = async () => {
   try {
-    const response = await fetch('http://127.0.0.1:8000/media');
+    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/media`);
     const data = await response.json();
     mediaData.value = data;
     updateChart();
