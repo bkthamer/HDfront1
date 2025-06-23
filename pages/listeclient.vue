@@ -114,7 +114,7 @@ onMounted(fetchClients)
    
     <h2 class="text-3xl font-semibold ml-6 mt-4 mb-6 text-gray-800">Liste des clients</h2>
   </div>
-  <VCard class="data-card">
+  <VCard class="">
     <VDataTable
       :headers="headers"
       :items="clients"
@@ -125,7 +125,9 @@ onMounted(fetchClients)
         <VBtn color="primary" @click="openEdit(item)">
           Modifier
         </VBtn>
+        
       </template>
+    
     </VDataTable>
   </VCard>
 

@@ -60,18 +60,10 @@
 
 
         <div class="actions-container">
-          <div class="debug-btn">
-            <VBtn @click="handleButtonClick" color="blue">Debug Console</VBtn>
-          </div>
+
          
           <div class="restore-btn">
-            <VBtn 
-  @click="selectedHelice && restorePreviousMedias(selectedHelice)" 
-  color="success"
-  :disabled="!selectedHelice"
->
-  Restaurer Médias Précédents
-</VBtn>
+
 
           </div>
         </div>
@@ -506,28 +498,7 @@ const cmddelfile = async () => {
 }
 
 
-const restorePreviousMedias = async (hdref: string) => {
-  try {
-    
-    const response = await $fetch(`${import.meta.env.VITE_API_BASE_URL}/helice/remote`, {
-      method: 'POST',
-      body: {
-        hdref: hdref,
-        ordre: 'enablemedia', 
-        fichier: "dis"         
-      }
-    });
 
-    console.log("Réponse de restauration :", response);
-    retour.value = `Les médias ont été restaurés avec succès.`;
-
-   
-    await cmdListsd(); 
-  } catch (error) {
-    console.error('Erreur de restauration:', error);
-    retour.value = 'Erreur lors de la restauration des médias.';
-  }
-};
 
 
 
@@ -549,9 +520,7 @@ onMounted(async () => {
   await fetchMedias()
 })
 
-const handleButtonClick = () => {
-  console.log('Debug Console button clicked')
-}
+
 </script>
 
 

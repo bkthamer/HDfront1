@@ -37,12 +37,17 @@ export default defineNuxtPlugin((nuxtApp) => {
     router.beforeEach((to, from, next) => {
       
       const token = localStorage.getItem('authToken')
-      const protectedRoutes = ['/dashboard', '/users','/telecommande','/suiviplaylist','/gestionplaylist','/playlist','/media','/demande','/account-settings','//ajoutplaylist','/ajoutmedia','/listedemandes','/users','/register']
+
+
+      const protectedRoutes = ['/dashboard', '/users','/telecommande','/suiviplaylist','/gestionplaylist','/playlist','/media','/demande','/account-settings','/ajoutplaylist','/ajoutmedia','/listedemandes','/users','/register','/ajoutsite','/ajoutpdv','/migrationpdv','/ajoutclient','/listeclient','/ajoutmateriel','/pagerouteurs','/pagehelice']
+
+      
+      const adminRoutes = ['/ajoutplaylist','/suiviplaylist','/suivihelice','/ajoutmedia','/suivimedia','/listedemandes','/users','/register','/ajoutclient','/listeclient','/ajoutsite','/ajoutpdv','/migrationpdv','/ajoutmateriel','/pagerouteurs','/pagehelice']
 
      
       if ((protectedRoutes.includes(to.name) || protectedRoutes.includes(to.path)) && !token) {
         next('/login')
-      } else if (to.path === '/suiviplaylist' && user.value.role === 'user') {
+      } else if (adminRoutes.includes(to.path) && user.value.role === 'user') {
         next('/dashboard') 
 
       }

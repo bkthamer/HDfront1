@@ -929,7 +929,12 @@ onMounted(async () => {
             <th>Heure début</th>
             <th>Heure fin</th>
             <th>Jours</th>
-            <th>Actions</th>
+              
+           
+            <th 
+            v-if="user.role === 'admin' || (user.role === 'user' && actionPlaylist?.proprietaire === user.id_user)">
+            Actions</th>
+            
           </tr>
         </thead>
         <tbody>
@@ -952,6 +957,7 @@ onMounted(async () => {
             </td>
             <td>
               <VBtn
+               v-if="user.role === 'admin' || (user.role === 'user' && actionPlaylist?.proprietaire === user.id_user)"
                 color="error"
                 variant="text"
                 size="small"
