@@ -108,7 +108,7 @@ onMounted(() => {
     }"
   />
   <VerticalNavLink
-  
+  v-if="user.role === 'admin'"
   :item="{
     title: 'Telé',
     icon: 'ri-remote-control-line',
