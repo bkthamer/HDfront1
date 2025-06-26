@@ -466,35 +466,43 @@ const openPeriodicSchedule = (pl: Playlist) => {
 
 
 const submitSchedule = async () => {
-
+  
   const payload = {
+    sch_id: 0,
     sch_playlist_id: scheduleForm.value.sch_playlist_id,
     sch_start_to_end: scheduleForm.value.sch_start_to_end,
-    sch_start_date: new Date(scheduleForm.value.sch_start_date).toISOString().split('T')[0],
-    sch_end_date: new Date(scheduleForm.value.sch_end_date).toISOString().split('T')[0],
+    sch_start_date: new Date(scheduleForm.value.sch_start_date)
+      .toISOString()
+      .split('T')[0],
+    sch_end_date: new Date(scheduleForm.value.sch_end_date)
+      .toISOString()
+      .split('T')[0],
     sch_day_of_week: scheduleForm.value.sch_day_of_week,
-    sch_hour_start: scheduleForm.value.sch_hour_start.slice(0, 5), 
-    sch_hour_end: scheduleForm.value.sch_hour_end.slice(0, 5)
-  }
+    sch_hour_start: scheduleForm.value.sch_hour_start.slice(0, 5),
+    sch_hour_end: scheduleForm.value.sch_hour_end.slice(0, 5),
+  };
 
   try {
-    await $fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/addgrille`, {
-      method: 'POST',
-      body: payload
-    })
-    showScheduleModal.value = false
-    toast.success('Planification ajoutée avec succès')
-  } catch (error) {
-    console.error('Erreur lors de la planification', error)
-    if (error instanceof Error) {
-      
-      toast.error('Échec de la planification : ' + (error as any).data?.detail || error.message);
-    } else {
-      toast.error('Échec de la planification');
-    }
+    await $fetch(
+      `${import.meta.env.VITE_API_BASE_URL}/playlist/addgrille`,
+      {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+    showScheduleModal.value = false;
+    toast.success("Planification ajoutée avec succès");
+  } catch (err: any) {
+    console.error("Erreur lors de la planification", err);
+    const message =
+      err?.data?.detail || err.message || "Échec de la planification";
+    toast.error(`Échec de la planification : ${message}`);
   }
-}
-
+};
 
 
 
