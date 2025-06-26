@@ -50,29 +50,44 @@ const selectedPlaylist = ref<Playlist | null>(null);
 const submitPlanif = async () => {
   const form = scheduleForm.value;
   if (!form.sch_playlist_id) return;
+
+  
   const payload = {
-    sch_playlist_id:  form.sch_playlist_id,
+    sch_id: 0,                          
+    sch_playlist_id: form.sch_playlist_id,
     sch_start_to_end: form.sch_start_to_end,
-    sch_start_date:    new Date(form.sch_start_date).toISOString().split('T')[0],
-    sch_end_date:      new Date(form.sch_end_date).toISOString().split('T')[0],
-    sch_day_of_week:  form.sch_day_of_week,
-    sch_hour_start:   form.sch_hour_start.slice(0,5),
-    sch_hour_end:     form.sch_hour_end.slice(0,5)
+    sch_start_date: new Date(form.sch_start_date)
+      .toISOString()
+      .split("T")[0],
+    sch_end_date: new Date(form.sch_end_date)
+      .toISOString()
+      .split("T")[0],
+    sch_day_of_week: form.sch_day_of_week,
+    sch_hour_start: form.sch_hour_start.slice(0, 5),
+    sch_hour_end: form.sch_hour_end.slice(0, 5),
   };
+
   try {
     await $fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/addplanif`, {
-      method: 'POST',
-      body: payload
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
     });
+
     showScheduleModal.value = false;
-    isForAddPlanif.value   = false;
-    toast.success('Planification personnalisée ajoutée avec succès');
-   
-  } catch (err) {
-    console.error('Erreur addPlanif', err);
-    toast.error('Échec de l’ajout de la planification personnalisée');
+    isForAddPlanif.value = false;
+    toast.success("Planification personnalisée ajoutée avec succès");
+  } catch (err: any) {
+    console.error("Erreur addPlanif", err);
+    const msg =
+      err?.data?.detail || err.message || "Échec de l’ajout de la planification";
+    toast.error(`Échec de l’ajout de la planification personnalisée : ${msg}`);
   }
 };
+
 
 
 
@@ -139,26 +154,49 @@ const fetchUserId = async () => {
 
 async function subscribeAll(pl: Playlist) {
   togglePDVAssociation(true);
+
   try {
-    const schedules = await $fetch<any[]>(`${import.meta.env.VITE_API_BASE_URL}/playlist/listgrille/${pl.id}`);
+    
+    const schedules = await $fetch<any[]>(
+      `${import.meta.env.VITE_API_BASE_URL}/playlist/listgrille/${pl.id}`
+    );
+
+    
     for (const s of schedules) {
-      await $fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/abonne`, {
-        method: 'POST',
-        body: {
-          sch_playlist_id:  pl.id,
-          sch_start_to_end: s.start_to_end ?? true,
-          sch_start_date:   s.start_date,
-          sch_end_date:     s.end_date,
-          sch_day_of_week:  s.day_of_week,
-          sch_hour_start:   s.hour_start,
-          sch_hour_end:     s.hour_end
+      
+      const payload = {
+        sch_id: 0,
+        sch_playlist_id: pl.id,
+        sch_start_to_end: s.start_to_end ?? true,
+        sch_start_date: s.start_date,
+        sch_end_date: s.end_date,
+        sch_day_of_week: s.day_of_week,
+        sch_hour_start: s.hour_start,
+        sch_hour_end: s.hour_end,
+      };
+
+      await $fetch(
+        `${import.meta.env.VITE_API_BASE_URL}/playlist/abonne`,
+        {
+          method: "POST",
+          headers: {
+            Accept: "application/json",
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
         }
-      });
+      );
     }
-    toast.success('Abonnement à la playlist réussi');
-  } catch (e) {
-    console.error(e);
-    alert('Échec de l’abonnement');
+
+    toast.success("Abonnement à la playlist réussi");
+  } catch (err: any) {
+    console.error("Erreur lors de l’abonnement :", err);
+    const msg =
+      err?.data?.detail || err.message || "Échec de l’abonnement";
+    toast.error(`Échec de l’abonnement : ${msg}`);
+  } finally {
+   console.log('Fin de l’abonnement à la playlist');
+    showPDVActionModal.value = false;
   }
 }
 
