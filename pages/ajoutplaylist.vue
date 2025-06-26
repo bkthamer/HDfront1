@@ -36,37 +36,42 @@ const validateForm = () => {
 
 const retourapi = ref({ etat: '', message: '' })
 
-const onSubmit = async () => {
+async function onSubmit() {
   const errors = validateForm()
-  if (errors.length > 0) return
+  if (errors.length) {
+    errors.forEach(e => toast.error(e))
+    return
+  }
 
-  const proprietaireValue = playlistForm.value.pl_proprietaire ?? 0
+  const payload = {
+    pl_id:           0,
+    pl_libelle:      playlistForm.value.pl_libelle,
+    pl_description:  playlistForm.value.pl_description,
+    pl_proprietaire: playlistForm.value.pl_proprietaire ?? 0,
+    pl_status:       0,
+    pl_mode:         "Auto",
+  }
 
   try {
-    const resp = await $fetch(`${import.meta.env.VITE_API_BASE_URL}/playlist/add`, {
-      method: 'POST',
-      body: {
-        pl_libelle:       playlistForm.value.pl_libelle,
-        pl_description:   playlistForm.value.pl_description,
-        pl_proprietaire:  proprietaireValue,
-        pl_status:        false,
-        pl_mode:          playlistForm.value.pl_mode
-      }
-    })
-    retourapi.value = resp as { etat: string; message: string }
-    if (retourapi.value.etat === 'success') {
+    const { data } = await axios.post(
+      `${import.meta.env.VITE_API_BASE_URL}/playlist/add`,
+      payload
+    )
+
+    if (data.etat === 'success') {
       toast.success('Playlist ajoutée avec succès !')
-      playlistForm.value = {
-        pl_libelle: '',
-        pl_description: '',
-        pl_proprietaire: null,
-        pl_mode: 'Auto'
-      }
+      
+      
+      
+      
     } else {
-      toast.error(`Erreur : ${retourapi.value.message}`)
+      toast.error(`Erreur : ${data.message}`)
     }
-  } catch (error) {
-    console.error('Erreur soumission:', error)
+  } catch (error: any) {
+    console.error('Erreur API playlist/add :', error)
+    const msg = error.response?.data?.message
+              || 'Erreur lors de l\'ajout de la playlist.'
+    toast.error(msg)
   }
 }
 
