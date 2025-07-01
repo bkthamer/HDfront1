@@ -42,7 +42,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <h1 class="text-center mb-4"> Tableau de bord État des équipements & activité des utilisateurs</h1>
+  <h1 class="text-center mb-4"
+  v-if="user.role === 'admin'"
+  > Tableau de bord État des équipements & activité des utilisateurs</h1>
   <VContainer fluid>
     <VRow class="match-height" no-gutters>
      
