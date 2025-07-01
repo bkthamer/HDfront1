@@ -1,80 +1,62 @@
 <script setup lang="ts">
 import {
+  BarController,
+  BarElement,
   CategoryScale,
   Chart,
   Legend,
   LinearScale,
-  LineController,
-  LineElement,
-  PointElement,
   Title,
   Tooltip
-} from 'chart.js';
-import { onMounted, ref } from 'vue';
-
+} from 'chart.js'
+import { onMounted, ref } from 'vue'
 
 Chart.register(
-  LineController,
-  LineElement,
-  PointElement,
+  BarController,
+  BarElement,
   CategoryScale,
   LinearScale,
   Title,
   Tooltip,
   Legend
-);
+)
 
-const chartRef = ref<HTMLCanvasElement | null>(null);
-let chartInstance: Chart | null = null;
-const mediaData = ref<any[]>([]);
+const chartRef = ref<HTMLCanvasElement | null>(null)
+let chartInstance: Chart | null = null
 
-const fetchMedia = async () => {
-  try {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/media`);
-    const data = await response.json();
-    mediaData.value = data;
-    updateChart();
-  } catch (error) {
-    console.error('Erreur lors de la récupération des médias :', error);
-  }
-};
+const fetchRouteurStatusCounts = async () => {
+  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/materiels`)
+  const data = await response.json()
 
-const updateChart = () => {
+  const statusCounts: Record<string, number> = {}
+  data
+    .filter((m: any) => m.typemateriel === 'RouteurAR617')
+    .forEach((m: any) => {
+      statusCounts[m.status] = (statusCounts[m.status] || 0) + 1
+    })
+
+  const labels = Object.keys(statusCounts)
+  const counts = labels.map(label => statusCounts[label])
+
   if (chartInstance) {
-    chartInstance.destroy();
+    chartInstance.destroy()
   }
-
-  // Agréger les médias par nom de catégorie (champ "categorie_nom")
-  const counts: Record<string, number> = {};
-  mediaData.value.forEach(media => {
-    const cat = media.categorie_nom || 'Non défini';
-    counts[cat] = (counts[cat] || 0) + 1;
-  });
-
-  // Préparer les labels et les données
-  // On trie par ordre alphabétique pour un affichage cohérent
-  const sortedCategories = Object.keys(counts).sort();
-  const labels = sortedCategories; // Utilise directement le nom de la catégorie
-  const datasetData = sortedCategories.map(cat => counts[cat]);
 
   if (chartRef.value) {
-    const ctx = chartRef.value.getContext('2d');
-    if (!ctx) return;
+    const ctx = chartRef.value.getContext('2d')
+    if (!ctx) return
 
     chartInstance = new Chart(ctx, {
-      type: 'line',
+      type: 'bar',
       data: {
-        labels: labels,
+        labels,
         datasets: [
           {
-            label: 'Nombre de médias',
-            data: datasetData,
-            fill: false,
-            borderColor: '#3498db',
-            backgroundColor: '#3498db',
-            tension: 0.3,
-            pointRadius: 5,
-            pointBackgroundColor: '#3498db'
+            label: 'Nombre de RouteurAR617',
+            data: counts,
+            backgroundColor: 'rgba(54, 162, 235, 0.7)',
+            borderColor: 'rgb(54, 162, 235)',
+            borderWidth: 1
           }
         ]
       },
@@ -84,9 +66,9 @@ const updateChart = () => {
         plugins: {
           title: {
             display: true,
-            text: 'Nombre de médias par catégorie',
+            text: 'Répartition des RouteurAR617 par statut',
             font: {
-              size: 18,
+              size: 16,
               weight: 'bold'
             }
           },
@@ -98,65 +80,64 @@ const updateChart = () => {
           y: {
             beginAtZero: true,
             ticks: {
-              font: { size: 14 }
+              font: {
+                size: 12
+              }
             }
           },
           x: {
             ticks: {
-              font: { size: 14 }
+              font: {
+                size: 12
+              }
             }
           }
         }
       }
-    });
+    })
   }
-};
+}
 
-onMounted(() => {
-  fetchMedia();
-});
+onMounted(fetchRouteurStatusCounts)
 </script>
 
 <template>
-  <!-- Card contenant le line chart -->
   <div class="card">
-    <div class="card-header">
-      <h3>Médias par catégorie</h3>
-    </div>
-    <div class="card-body">
-      <div class="chart-container">
-        <canvas ref="chartRef"></canvas>
-      </div>
+    <h3 class="card-title">Distribution des routeurs AR617 par statut</h3>
+    <div class="chart-wrapper">
+      <canvas ref="chartRef"></canvas>
     </div>
   </div>
 </template>
 
 <style scoped>
 .card {
-  max-width: 600px;
+  max-width: 450px;
   margin: 20px auto;
-  background: #fff;
+  background-color: #fff;
   border-radius: 12px;
   box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  text-align: center;
-}
-
-.card-header {
-  background-color: #fff;
-  color: #fff;
   padding: 1rem;
-  font-size: 20px;
-  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-.card-body {
-  padding: 1.5rem;
+.card-title {
+  margin: 0.5rem 0;
+  font-size: 1.25rem;
+  text-align: center;
+  color: #333;
 }
 
-.chart-container {
-  position: relative;
+.chart-wrapper {
   width: 100%;
-  height: 400px;
+  height: 300px;
+  position: relative;
+}
+
+.chart-wrapper canvas {
+  width: 100% !important;
+  height: 100% !important;
 }
 </style>

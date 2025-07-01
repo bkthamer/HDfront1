@@ -61,7 +61,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="card">
     <div class="card-header">
-      <h2>Nombre total des users</h2>
+      <h3>Total des utilisateurs actifs</h3>
     </div>
     <div class="card-body">
       <div class="chart-container">

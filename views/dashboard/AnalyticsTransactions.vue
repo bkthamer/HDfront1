@@ -1,73 +1,63 @@
 <script setup>
-import { ArcElement, Chart, DoughnutController, Tooltip } from 'chart.js';
-import { onBeforeUnmount, onMounted, ref } from 'vue';
+import { ArcElement, Chart, DoughnutController, Tooltip } from 'chart.js'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 
-Chart.register(DoughnutController, ArcElement, Tooltip);
+Chart.register(DoughnutController, ArcElement, Tooltip)
 
-const chartRef = ref(null);
-let chartInstance = null;
-const totalUsers = ref(0);
+const chartRef = ref(null)
+let chartInstance = null
+const totalRouters = ref(0)
 
-const fetchUsersCount = async () => {
-  try {
-    const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/site/count`);
-    const data = await response.json();
-    totalUsers.value = data.total_sites;
-    updateChart();
-  } catch (error) {
-    console.error("Erreur lors de la récupération du nombre d'hélices:", error);
-  }
-};
+const fetchRoutersCount = async () => {
+  const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/materiels`)
+  const data = await response.json()
+  totalRouters.value = data.filter(
+    m => m.typemateriel === 'RouteurAR617' 
+  ).length
+  updateChart()
+}
 
 const updateChart = () => {
-  if (chartInstance) {
-    chartInstance.destroy();
-  }
+  if (chartInstance) chartInstance.destroy()
+  if (!chartRef.value) return
+  chartInstance = new Chart(chartRef.value, {
+    type: 'doughnut',
+    data: {
+      labels: ['Routeurs en service'],
+      datasets: [
+        {
+          data: [totalRouters.value, Math.max(100 - totalRouters.value, 0)],
+          backgroundColor: ['#30A14E', '#E0E0E0'],
+          borderWidth: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      cutout: '75%',
+      plugins: { tooltip: { enabled: false } }
+    }
+  })
+}
 
-  if (chartRef.value) {
-    chartInstance = new Chart(chartRef.value, {
-      type: "doughnut",
-      data: {
-        labels: ["sites"],
-        datasets: [
-          {
-            data: [totalUsers.value, Math.max(100 - totalUsers.value, 0)], 
-            backgroundColor: ["#30A14E", "#E0E0E0"],
-            borderWidth: 2,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        cutout: "75%", 
-        plugins: {
-          tooltip: { enabled: false }, 
-        },
-      },
-    });
-  }
-};
-
-onMounted(fetchUsersCount);
+onMounted(fetchRoutersCount)
 
 onBeforeUnmount(() => {
-  if (chartInstance) {
-    chartInstance.destroy();
-  }
-});
+  if (chartInstance) chartInstance.destroy()
+})
 </script>
 
 <template>
   <div class="card">
     <div class="card-header">
-      <h2>Nombre total des sites</h2>
+      <h4>Total des routeurs enregistrés</h4>
     </div>
     <div class="card-body">
       <div class="chart-container">
         <canvas ref="chartRef"></canvas>
         <div class="chart-text">
-          <span class="chart-number">{{ totalUsers }}</span>
-          <span class="chart-label">Sites</span>
+          <span class="chart-number">{{ totalRouters }}</span>
+          <span class="chart-label">Routeurs</span>
         </div>
       </div>
     </div>
@@ -85,11 +75,9 @@ onBeforeUnmount(() => {
   overflow: hidden;
   transition: transform 0.2s;
 }
-
 .card:hover {
   transform: translateY(-5px);
 }
-
 .card-header {
   background-color: #007bff;
   padding: 1.2rem;
@@ -98,18 +86,15 @@ onBeforeUnmount(() => {
   font-weight: bold;
   border-radius: 16px 16px 0 0;
 }
-
 .card-body {
   padding: 2rem;
 }
-
 .chart-container {
   position: relative;
   width: 220px;
   height: 220px;
   margin: auto;
 }
-
 .chart-text {
   position: absolute;
   top: 50%;
@@ -117,13 +102,11 @@ onBeforeUnmount(() => {
   transform: translate(-50%, -50%);
   text-align: center;
 }
-
 .chart-number {
   font-size: 32px;
   font-weight: bold;
   color: #30A14E;
 }
-
 .chart-label {
   display: block;
   font-size: 14px;

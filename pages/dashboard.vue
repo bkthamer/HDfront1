@@ -42,6 +42,7 @@ onMounted(() => {
 </script>
 
 <template>
+  <h1 class="text-center mb-4"> Tableau de bord État des équipements & activité des utilisateurs</h1>
   <VContainer fluid>
     <VRow class="match-height" no-gutters>
      
@@ -58,20 +59,22 @@ onMounted(() => {
       </VCol>
 
       
-      <VCol cols="12" sm="6" md="6" lg="5">
-        <AnalyticsWeeklyOverview  v-if="user.role === 'admin'" />
-      </VCol>
-<VCol cols="12" sm="6" md="6" lg="2">
+      <VCol cols="12" sm="6" md="6" lg="4">
         
+        <NbrAdmin  v-if="user.role === 'admin'" />
+      </VCol>
+<VCol cols="12" sm="12" md="6" lg="4">
+         
+          <AnalyticsTotalEarning  v-if="user.role === 'admin'" />
       </VCol>
 
-      <VCol cols="12" sm="6" md="6" lg="5">
-        <AnalyticsTotalEarning  v-if="user.role === 'admin'" />
+      <VCol cols="12" sm="6" md="6" lg="4">
+       <AnalyticsWeeklyOverview  v-if="user.role === 'admin'" />
       </VCol>
 
 
       <VCol cols="12" sm="6" md="6" lg="12">
-        <NbrAdmin  v-if="user.role === 'admin'" />
+       
       </VCol>
     </VRow>
 
