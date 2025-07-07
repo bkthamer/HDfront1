@@ -98,7 +98,7 @@ onBeforeUnmount(() => {
 <template>
   <div class="card">
     <div class="card-header">
-      <h3>Nombre médias personnels</h3>
+      <h4>Nombre de mes médias personnels</h4>
     </div>
     <div class="card-body">
       <div class="chart-container">

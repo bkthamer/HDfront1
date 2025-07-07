@@ -5,6 +5,7 @@ import AnalyticsTransactions from '@/views/dashboard/AnalyticsTransactions.vue';
 import AnalyticsWeeklyOverview from '@/views/dashboard/AnalyticsWeeklyOverview.vue';
 import Demandebyuser from '@/views/dashboard/demandebyuser.vue';
 import NbrAdmin from '@/views/dashboard/nbrAdmin.vue';
+import Nbrhelices from '@/views/dashboard/nbrhelices.vue';
 import Nbrmediauser from '@/views/dashboard/nbrmediauser.vue';
 import Pdv from '@/views/dashboard/pdv.vue';
 
@@ -42,9 +43,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <h1 class="text-center mb-4"
-  v-if="user.role === 'admin'"
-  > Tableau de bord État des équipements & activité des utilisateurs</h1>
+  <h1 class="text-center mb-4" v-if="user.role === 'admin'"> Tableau de bord État des équipements & activité des utilisateurs</h1>
+  <h1 class="text-center mb-4" v-if="user.role === 'user'">Vue globale de mon espace</h1>
   <VContainer fluid>
     <VRow class="match-height" no-gutters>
      
@@ -82,6 +82,9 @@ onMounted(() => {
 
 
     <VRow>
+      <VCol>
+        <Nbrhelices v-if="user.role === 'user'"/>
+      </VCol>
     <VCol >
         <Demandebyuser  v-if="user.role === 'user'"/>
       </VCol>
